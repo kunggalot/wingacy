@@ -241,7 +241,7 @@ export default function WingacyComingSoon() {
 
               {/* Footer replaced with latitude/longitude map coordinates */}
               <div className="mt-4 text-base translate-y-[25px] text-neutral-400 tracking-wide uppercase text-center">
-                14°03'34.8\"N 101°22'16.0\"E
+                14°03'34.8"N 101°22'16.0"E
               </div>
             </div>
           </main>
