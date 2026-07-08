@@ -239,9 +239,9 @@ export default function WingacyComingSoon() {
                 />
               </div>
 
-              {/* Footer replaced with latitude/longitude map coordinates */}
+              {/* Footer: copyright stamp */}
               <div className="mt-4 text-base translate-y-[25px] text-neutral-400 tracking-wide uppercase text-center">
-                14°03'34.8"N 101°22'16.0"E
+                © 2026 Wingacy · All Rights Reserved
               </div>
             </div>
           </main>
