@@ -476,6 +476,18 @@
   }
   :root[data-theme="light"] .pdp-gallery-item img{ --logo-invert: 1; }
   :root[data-theme="dark"] .pdp-gallery-item img{ --logo-invert: 0; }
+  /* real product photo, same treatment as .swatch.has-photo on the shop cards */
+  .pdp-gallery-item.has-photo img{
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    object-fit: cover;
+    object-position: center 80%;
+    opacity: 1;
+    filter: none;
+  }
 
   .pdp-back{
     padding: 10px 16px;
@@ -1536,7 +1548,14 @@
       const item = document.createElement('div');
       item.className = 'pdp-gallery-item';
       item.hidden = i !== 0;
-      item.innerHTML = `<img src="${swatchImgSrc}" alt="" />`;
+      // Real photography only covers slots 0/1 (photo/photoHover) so far;
+      // remaining slots fall back to the shared logo-watermark placeholder
+      // until more angles are shot, same as the shop card treatment.
+      const src = i === 0 && currentProduct.photo ? currentProduct.photo
+        : i === 1 && currentProduct.photoHover ? currentProduct.photoHover
+        : swatchImgSrc;
+      if (src !== swatchImgSrc) item.classList.add('has-photo');
+      item.innerHTML = `<img src="${src}" alt="" />`;
       pdpGallery.appendChild(item);
 
       const dot = document.createElement('button');
