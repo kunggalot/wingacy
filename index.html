@@ -541,6 +541,51 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
+  .auth-view{ width: 100%; max-width: 420px; margin: 0 auto; padding: 40px var(--gutter) 60px; }
+  /* .section-head carries its own --gutter side padding for the shop/cart
+     context; inside the already-guttered .auth-view that double-indents the
+     heading past the form fields. Drop only the horizontal padding here so
+     the title lines up with the inputs, keeping section-head's vertical rhythm. */
+  .auth-view .section-head{ padding-left: 0; padding-right: 0; }
+  .auth-field{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .auth-field label{
+    font: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .auth-field input{
+    font: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .auth-field input:focus-visible{ outline: 2px solid var(--ink); outline-offset: 1px; }
+  .auth-submit{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; margin-top: 4px; }
+  .auth-switch{ margin-top: 16px; font: var(--font-mono); font-size: 0.66rem; color: var(--muted); text-align: center; }
+  .auth-error{
+    margin: 0 0 10px;
+    font: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--accent-text);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  /* neutral confirmation (e.g. post-register) — muted, not the accent used
+     for errors, so it doesn't read as a failure */
+  .auth-note{
+    margin: 0 0 10px;
+    font: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .account-email{ font: var(--font-mono); font-size: 0.8rem; color: var(--muted); margin: 0 0 20px; word-break: break-all; }
   .add-to-cart{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; }
 
   /* --- cart --- */
@@ -679,13 +724,13 @@
         <span>WINGACY</span>
       </button>
       <div class="navbar-right">
-        <button class="hoverable" type="button" aria-label="Account" disabled>
+        <button class="hoverable" type="button" id="accountBtn" aria-label="Account">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 20c0-4.5 3.6-7 8-7s8 2.5 8 7"/>
           </svg>
         </button>
-        <button class="hoverable" type="button" aria-label="Notifications" disabled>
+        <button class="hoverable" type="button" aria-label="Notifications">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
             <path d="M6 9a6 6 0 0 1 12 0c0 4.5 1.8 5.5 1.8 5.5H4.2S6 13.5 6 9Z"/>
             <path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/>
@@ -708,7 +753,7 @@
         <p class="hero-drop"><b>Prachin Buri</b>, Thailand</p>
         <h1 class="hero-title">Wingacy</h1>
         <div class="hero-cta-row">
-          <a class="hoverable hero-cta" aria-disabled="true" tabindex="-1"><span>Explore the shop</span></a>
+          <a class="hoverable hero-cta" href="#" data-view="shop"><span>Explore the shop</span></a>
           <span class="hero-stock" id="heroStock">COMING SOON..</span>
         </div>
       </div>
@@ -718,7 +763,7 @@
       </div>
       </div>
     </section>
-    <a class="hoverable home-band" aria-disabled="true" tabindex="-1">
+    <a class="hoverable home-band" href="#" data-view="shop">
       <span class="band-label">View all products</span>
       <span class="band-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -779,6 +824,53 @@
         </div>
         <button class="hoverable checkout" type="button" disabled><span>Checkout</span></button>
       </div>
+    </section>
+    </div>
+
+    <div class="view" id="view-login" hidden>
+    <section class="auth-view">
+      <div class="section-head"><h2>Log in</h2></div>
+      <p class="auth-note" id="loginNote" hidden></p>
+      <p class="auth-error" id="loginError" hidden></p>
+      <form id="loginForm">
+        <div class="auth-field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" name="email" autocomplete="email" required />
+        </div>
+        <div class="auth-field">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" name="password" autocomplete="current-password" required />
+        </div>
+        <button class="hoverable auth-submit" type="submit"><span>Log in</span></button>
+      </form>
+      <p class="auth-switch">No account yet? <a href="#" data-view="register">Register</a></p>
+    </section>
+    </div>
+
+    <div class="view" id="view-register" hidden>
+    <section class="auth-view">
+      <div class="section-head"><h2>Register</h2></div>
+      <p class="auth-error" id="registerError" hidden></p>
+      <form id="registerForm">
+        <div class="auth-field">
+          <label for="registerEmail">Email</label>
+          <input type="email" id="registerEmail" name="email" autocomplete="email" required />
+        </div>
+        <div class="auth-field">
+          <label for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" name="password" autocomplete="new-password" minlength="8" required />
+        </div>
+        <button class="hoverable auth-submit" type="submit"><span>Create account</span></button>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="#" data-view="login">Log in</a></p>
+    </section>
+    </div>
+
+    <div class="view" id="view-account" hidden>
+    <section class="auth-view">
+      <div class="section-head"><h2>Account</h2></div>
+      <p class="account-email" id="accountEmail"></p>
+      <button class="hoverable auth-submit" type="button" id="logoutBtn"><span>Log out</span></button>
     </section>
     </div>
 
@@ -849,6 +941,121 @@
     t.addEventListener('click', (e) => { e.preventDefault(); show(t.dataset.view); });
   });
   show('home');
+
+  /* --- auth: talks to the separate wingacy-auth API over cross-origin
+     fetch with cookies. In prod this constant must point at a subdomain of
+     the storefront's own registrable domain (e.g. api.wingacy.com from
+     wingacy.com) — the backend's session cookie is sameSite:'strict', so
+     the browser only attaches it on same-site requests; localhost:8000 and
+     localhost:4000 are same-site today (port doesn't count), but two
+     unrelated domains never are. --- */
+  const AUTH_API = 'http://localhost:4000';
+  let currentUser = null;
+
+  async function authFetch(path, options = {}) {
+    return fetch(AUTH_API + path, {
+      ...options,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+  }
+
+  function showAuthError(el, message) { el.textContent = message; el.hidden = false; }
+  function hideAuthError(el) { el.hidden = true; }
+  // Locks a form's submit button for the duration of an async submit so a
+  // second click can't fire a duplicate register/login POST (which the argon2
+  // hash makes slow enough to double-tap easily).
+  async function withSubmitLock(form, fn) {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
+    try { return await fn(); }
+    finally { if (btn) btn.disabled = false; }
+  }
+  function renderAccount() {
+    document.getElementById('accountEmail').textContent = currentUser ? currentUser.email : '';
+  }
+
+  document.getElementById('accountBtn').addEventListener('click', (e) => {
+    e.preventDefault();
+    show(currentUser ? 'account' : 'login');
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('loginError');
+    hideAuthError(errorEl);
+    document.getElementById('loginNote').hidden = true;
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    await withSubmitLock(e.target, async () => {
+      try {
+        const res = await authFetch('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          showAuthError(errorEl, body.error || 'Log in failed.');
+          return;
+        }
+        currentUser = await res.json();
+        renderAccount();
+        show('account');
+      } catch {
+        showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+      }
+    });
+  });
+
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('registerError');
+    hideAuthError(errorEl);
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    await withSubmitLock(e.target, async () => {
+      try {
+        const res = await authFetch('/register', { method: 'POST', body: JSON.stringify({ email, password }) });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          showAuthError(errorEl, body.error || 'Registration failed.');
+          return;
+        }
+        // Register no longer auto-logs-in and the server replies identically
+        // whether the email was new or already taken (anti-enumeration), so we
+        // always send the user to log in with the same neutral confirmation —
+        // the UI must not branch on account existence either.
+        e.target.reset();
+        document.getElementById('loginEmail').value = email;
+        show('login');
+        const note = document.getElementById('loginNote');
+        note.textContent = 'You can now log in.';
+        note.hidden = false;
+      } catch {
+        showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+      }
+    });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    try {
+      await authFetch('/logout', { method: 'POST' }); // 204 No Content — no body to parse
+    } catch {
+      /* logout is best-effort client-side regardless of network state */
+    }
+    currentUser = null;
+    show('login');
+  });
+
+  // Silently restore session on load (e.g. returning visitor with a live cookie).
+  (async () => {
+    try {
+      const res = await authFetch('/me');
+      if (res.ok) {
+        currentUser = await res.json();
+        renderAccount();
+      }
+    } catch {
+      /* no session / API unreachable — stay logged out, no user-facing error */
+    }
+  })();
 
   const products = [
     { id: "run-club-tee",    name: "Wingacy Run Club Tee 2025",    price: 2670,  category: "run", section: "new",        angle: 0, imageCount: 3,
