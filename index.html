@@ -586,6 +586,28 @@
     letter-spacing: 0.06em;
   }
   .account-email{ font: var(--font-mono); font-size: 0.8rem; color: var(--muted); margin: 0 0 20px; word-break: break-all; }
+
+  /* --- addresses (checkout + account) --- */
+  .address-card{ border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .address-card[aria-pressed="true"]{ border-color: var(--ink); }
+  .address-card-top{ display: flex; justify-content: space-between; gap: 10px; font: var(--font-display); font-size: 0.78rem; }
+  .address-card-default{ font: var(--font-mono); font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .address-card-body{ font: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  .address-card-actions{ display: flex; gap: 8px; margin-top: 10px; }
+  .address-card-actions .hoverable{ padding: 6px 10px; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .address-form{ border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .address-fields-intl{ margin-bottom: 4px; }
+  .country-toggle{ margin-bottom: 12px; }
+  .address-default-toggle{ display: flex; align-items: center; gap: 6px; font: var(--font-mono); font-size: 0.66rem; color: var(--muted); margin: 4px 0 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .address-form-actions{ display: flex; gap: 8px; }
+  .address-form-actions .auth-submit{ flex: 1; }
+
+  /* --- order history --- */
+  .order-row{ border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .order-row-top{ display: flex; justify-content: space-between; font: var(--font-display); font-size: 0.78rem; cursor: pointer; }
+  .order-row-meta{ font: var(--font-mono); font-size: 0.62rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .order-row-detail{ margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .order-row-detail[hidden]{ display: none; }
   .add-to-cart{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; }
 
   /* --- cart --- */
@@ -822,8 +844,29 @@
           <span>Subtotal</span>
           <span id="cartSubtotal">฿0</span>
         </div>
-        <button class="hoverable checkout" type="button" disabled><span>Checkout</span></button>
+        <button class="hoverable checkout" type="button" id="checkoutBtn"><span>Checkout</span></button>
       </div>
+    </section>
+    </div>
+
+    <div class="view" id="view-checkout" hidden>
+    <section class="cart-view">
+      <div class="section-head"><h2>Checkout</h2></div>
+      <p class="auth-note">This places a reservation — no payment is collected yet.</p>
+      <div id="checkoutSummary"><!-- line items injected, mirrors #cartList --></div>
+      <div class="cart-summary">
+        <div class="cart-subtotal-row">
+          <span>Subtotal</span>
+          <span id="checkoutSubtotal">฿0</span>
+        </div>
+      </div>
+
+      <div class="section-head"><h2>Shipping address</h2></div>
+      <p class="auth-error" id="checkoutError" hidden></p>
+      <div id="checkoutAddressList"><!-- selectable address cards injected --></div>
+      <div id="checkoutAddressFormContainer" hidden></div>
+      <button class="hoverable auth-submit" type="button" id="checkoutAddAddressBtn"><span>Add new address</span></button>
+      <button class="hoverable checkout" type="button" id="placeOrderBtn" disabled><span>Place order</span></button>
     </section>
     </div>
 
@@ -869,8 +912,18 @@
     <div class="view" id="view-account" hidden>
     <section class="auth-view">
       <div class="section-head"><h2>Account</h2></div>
+      <p class="auth-note" id="accountNote" hidden></p>
       <p class="account-email" id="accountEmail"></p>
       <button class="hoverable auth-submit" type="button" id="logoutBtn"><span>Log out</span></button>
+
+      <div class="section-head"><h2>Order History</h2></div>
+      <div id="orderList"><!-- order rows injected --></div>
+      <p class="auth-note" id="orderListEmpty" hidden>No orders yet.</p>
+
+      <div class="section-head"><h2>Addresses</h2></div>
+      <div id="accountAddressList"><!-- address cards injected --></div>
+      <div id="accountAddressFormContainer" hidden></div>
+      <button class="hoverable auth-submit" type="button" id="addAddressBtn"><span>Add address</span></button>
     </section>
     </div>
 
@@ -925,6 +978,46 @@
   </div>
 </template>
 
+<template id="addressFormTpl">
+  <form class="address-form">
+    <div class="auth-field">
+      <label>Label (optional)</label>
+      <input type="text" class="f-label" maxlength="40" placeholder="Home, Work..." />
+    </div>
+    <div class="auth-field">
+      <label>Recipient name</label>
+      <input type="text" class="f-recipientName" required />
+    </div>
+    <div class="auth-field">
+      <label>Phone</label>
+      <input type="tel" class="f-phone" required />
+    </div>
+    <div class="size-chips country-toggle">
+      <button type="button" class="hoverable size-chip f-country-th" aria-pressed="true"><span>Thailand</span></button>
+      <button type="button" class="hoverable size-chip f-country-intl" aria-pressed="false"><span>International</span></button>
+    </div>
+    <div class="address-fields-th">
+      <div class="auth-field"><label>Subdistrict (ตำบล)</label><input type="text" class="f-subdistrict" /></div>
+      <div class="auth-field"><label>District (อำเภอ)</label><input type="text" class="f-district" /></div>
+      <div class="auth-field"><label>Province (จังหวัด)</label><input type="text" class="f-province" /></div>
+    </div>
+    <div class="address-fields-intl" hidden>
+      <div class="auth-field"><label>City</label><input type="text" class="f-city" /></div>
+      <div class="auth-field"><label>State / Region</label><input type="text" class="f-stateRegion" /></div>
+      <div class="auth-field"><label>Country</label><input type="text" class="f-countryName" /></div>
+    </div>
+    <div class="auth-field"><label>Address line 1</label><input type="text" class="f-line1" required /></div>
+    <div class="auth-field"><label>Address line 2 (optional)</label><input type="text" class="f-line2" /></div>
+    <div class="auth-field"><label>Postal code</label><input type="text" class="f-postalCode" required /></div>
+    <label class="address-default-toggle"><input type="checkbox" class="f-isDefault" /> Set as default</label>
+    <p class="auth-error" hidden></p>
+    <div class="address-form-actions">
+      <button class="hoverable auth-submit" type="submit"><span>Save address</span></button>
+      <button class="hoverable f-cancel" type="button"><span>Cancel</span></button>
+    </div>
+  </form>
+</template>
+
 <script>
   /* --- view router: nav links + brand switch views client-side (no reload).
      Brand logo -> Home (hero only); each tab renders its own layout. --- */
@@ -935,6 +1028,8 @@
     const target = document.getElementById('view-' + name) ? name : 'home';
     views.forEach((v) => { v.hidden = (v.id !== 'view-' + target); });
     if (target === 'cart') renderCart();
+    if (target === 'checkout') renderCheckout();
+    if (target === 'account') renderAccount();
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('[data-view]').forEach((t) => {
@@ -951,11 +1046,16 @@
      unrelated domains never are. --- */
   const AUTH_API = 'http://localhost:4000';
   let currentUser = null;
+  let selectedAddressId = null;
 
   async function authFetch(path, options = {}) {
     return fetch(AUTH_API + path, {
       ...options,
       credentials: 'include',
+      // The API sets no Cache-Control headers, so the browser's HTTP cache
+      // can serve a stale GET (e.g. /orders right after placing a new one)
+      // instead of hitting the network — force every call to bypass it.
+      cache: 'no-store',
       headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     });
   }
@@ -972,12 +1072,272 @@
     finally { if (btn) btn.disabled = false; }
   }
   function renderAccount() {
+    document.getElementById('accountNote').hidden = true;
     document.getElementById('accountEmail').textContent = currentUser ? currentUser.email : '';
+    if (currentUser) {
+      renderAccountAddresses();
+      renderOrderHistory();
+    }
+  }
+
+  // --- addresses: shared between the Account page and Checkout (checkout
+  // reuses buildAddressCard/bindAddressForm for its own "add new address"
+  // flow, see the checkout wiring below). ---
+  function addressSummaryLine(a) {
+    const parts = [a.line1];
+    if (a.line2) parts.push(a.line2);
+    if (a.country_code === 'TH') {
+      parts.push(`${a.subdistrict} ${a.district} ${a.province} ${a.postal_code}`);
+    } else {
+      const region = a.state_region ? `${a.state_region}, ` : '';
+      parts.push(`${a.city}, ${region}${a.country_name} ${a.postal_code}`);
+    }
+    return parts.join(', ');
+  }
+
+  function buildAddressCard(a) {
+    const card = document.createElement('div');
+    card.className = 'address-card';
+    card.dataset.id = a.id;
+    card.innerHTML = `
+      <div class="address-card-top">
+        <span>${a.label ? a.label + ' — ' : ''}${a.recipient_name}</span>
+        ${a.is_default ? '<span class="address-card-default">Default</span>' : ''}
+      </div>
+      <div class="address-card-body">${a.phone}<br>${addressSummaryLine(a)}</div>
+    `;
+    return card;
+  }
+
+  // Clones #addressFormTpl into `container`, wires the Thailand/International
+  // toggle and submit/cancel, and POSTs (new) or PATCHes (`existing` given).
+  // `onSaved(address)` runs after a successful save so callers (Account list,
+  // Checkout) can each decide how to refresh themselves.
+  function bindAddressForm(container, existing, { onSaved, onCancel }) {
+    container.innerHTML = '';
+    const node = document.getElementById('addressFormTpl').content.cloneNode(true);
+    const form = node.querySelector('.address-form');
+    const thBtn = form.querySelector('.f-country-th');
+    const intlBtn = form.querySelector('.f-country-intl');
+    const thFields = form.querySelector('.address-fields-th');
+    const intlFields = form.querySelector('.address-fields-intl');
+    const errorEl = form.querySelector('.auth-error');
+
+    function setCountry(isThai) {
+      thBtn.setAttribute('aria-pressed', String(isThai));
+      intlBtn.setAttribute('aria-pressed', String(!isThai));
+      thFields.hidden = !isThai;
+      intlFields.hidden = isThai;
+    }
+    thBtn.addEventListener('click', () => setCountry(true));
+    intlBtn.addEventListener('click', () => setCountry(false));
+
+    if (existing) {
+      form.querySelector('.f-label').value = existing.label || '';
+      form.querySelector('.f-recipientName').value = existing.recipient_name;
+      form.querySelector('.f-phone').value = existing.phone;
+      form.querySelector('.f-subdistrict').value = existing.subdistrict || '';
+      form.querySelector('.f-district').value = existing.district || '';
+      form.querySelector('.f-province').value = existing.province || '';
+      form.querySelector('.f-city').value = existing.city || '';
+      form.querySelector('.f-stateRegion').value = existing.state_region || '';
+      form.querySelector('.f-countryName').value = existing.country_name || '';
+      form.querySelector('.f-line1').value = existing.line1;
+      form.querySelector('.f-line2').value = existing.line2 || '';
+      form.querySelector('.f-postalCode').value = existing.postal_code;
+      form.querySelector('.f-isDefault').checked = existing.is_default;
+      setCountry(existing.country_code === 'TH');
+    }
+
+    form.querySelector('.f-cancel').addEventListener('click', () => onCancel());
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAuthError(errorEl);
+      const isThai = thBtn.getAttribute('aria-pressed') === 'true';
+      const body = {
+        label: form.querySelector('.f-label').value || undefined,
+        recipientName: form.querySelector('.f-recipientName').value,
+        phone: form.querySelector('.f-phone').value,
+        countryCode: isThai ? 'TH' : 'XX',
+        line1: form.querySelector('.f-line1').value,
+        line2: form.querySelector('.f-line2').value || undefined,
+        postalCode: form.querySelector('.f-postalCode').value,
+        isDefault: form.querySelector('.f-isDefault').checked,
+      };
+      if (isThai) {
+        body.subdistrict = form.querySelector('.f-subdistrict').value;
+        body.district = form.querySelector('.f-district').value;
+        body.province = form.querySelector('.f-province').value;
+      } else {
+        body.city = form.querySelector('.f-city').value;
+        body.stateRegion = form.querySelector('.f-stateRegion').value || undefined;
+        body.countryName = form.querySelector('.f-countryName').value;
+      }
+      await withSubmitLock(form, async () => {
+        try {
+          const path = existing ? `/addresses/${existing.id}` : '/addresses';
+          const method = existing ? 'PATCH' : 'POST';
+          const res = await authFetch(path, { method, body: JSON.stringify(body) });
+          if (!res.ok) {
+            const resBody = await res.json().catch(() => ({}));
+            showAuthError(errorEl, resBody.error || 'Could not save address.');
+            return;
+          }
+          onSaved(await res.json());
+        } catch {
+          showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+        }
+      });
+    });
+
+    container.appendChild(node);
+    container.hidden = false;
+  }
+
+  async function renderAccountAddresses() {
+    const list = document.getElementById('accountAddressList');
+    const formContainer = document.getElementById('accountAddressFormContainer');
+    let addresses;
+    try {
+      addresses = await authFetch('/addresses').then((r) => r.json());
+    } catch {
+      return;
+    }
+    list.innerHTML = '';
+    addresses.forEach((a) => {
+      const card = buildAddressCard(a);
+      const actions = document.createElement('div');
+      actions.className = 'address-card-actions';
+      actions.innerHTML = `
+        <button class="hoverable" type="button"><span>Edit</span></button>
+        <button class="hoverable" type="button"><span>Delete</span></button>
+      `;
+      const [editBtn, deleteBtn] = actions.querySelectorAll('button');
+      editBtn.addEventListener('click', () => {
+        bindAddressForm(formContainer, a, {
+          onSaved: () => { formContainer.hidden = true; renderAccountAddresses(); },
+          onCancel: () => { formContainer.hidden = true; },
+        });
+      });
+      deleteBtn.addEventListener('click', async () => {
+        await authFetch(`/addresses/${a.id}`, { method: 'DELETE' });
+        renderAccountAddresses();
+      });
+      card.appendChild(actions);
+      list.appendChild(card);
+    });
+  }
+
+  document.getElementById('addAddressBtn').addEventListener('click', () => {
+    const formContainer = document.getElementById('accountAddressFormContainer');
+    bindAddressForm(formContainer, null, {
+      onSaved: () => { formContainer.hidden = true; renderAccountAddresses(); },
+      onCancel: () => { formContainer.hidden = true; },
+    });
+  });
+
+  document.getElementById('checkoutAddAddressBtn').addEventListener('click', () => {
+    const formContainer = document.getElementById('checkoutAddressFormContainer');
+    bindAddressForm(formContainer, null, {
+      onSaved: (created) => {
+        formContainer.hidden = true;
+        selectedAddressId = created.id;
+        renderCheckoutAddresses();
+      },
+      onCancel: () => { formContainer.hidden = true; },
+    });
+  });
+
+  document.getElementById('placeOrderBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('placeOrderBtn');
+    const errorEl = document.getElementById('checkoutError');
+    hideAuthError(errorEl);
+    if (!selectedAddressId || cart.length === 0) return;
+    btn.disabled = true;
+    try {
+      const res = await authFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          addressId: selectedAddressId,
+          items: cart.map((l) => ({ productId: l.id, size: l.size, quantity: l.qty })),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        // Left deliberately untouched on failure (e.g. a size sold out
+        // between add-to-cart and checkout) so the user can adjust and retry
+        // without re-adding everything.
+        showAuthError(errorEl, body.error || 'Could not place order.');
+        btn.disabled = false;
+        return;
+      }
+      const order = await res.json();
+      cart = [];
+      updateBagCount();
+      show('account');
+      const accountNote = document.getElementById('accountNote');
+      accountNote.textContent = `Order #${order.order_number} placed.`;
+      accountNote.hidden = false;
+    } catch {
+      showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+      btn.disabled = false;
+    }
+  });
+
+  // --- order history ---
+  async function renderOrderHistory() {
+    const list = document.getElementById('orderList');
+    const emptyEl = document.getElementById('orderListEmpty');
+    let orders;
+    try {
+      orders = await authFetch('/orders').then((r) => r.json());
+    } catch {
+      return;
+    }
+    list.innerHTML = '';
+    emptyEl.hidden = orders.length > 0;
+    orders.forEach((o) => {
+      const row = document.createElement('div');
+      row.className = 'order-row';
+      row.innerHTML = `
+        <div class="order-row-top">
+          <span>Order #${o.order_number}</span>
+          <span>${fmt(o.subtotal)}</span>
+        </div>
+        <div class="order-row-meta">${new Date(o.created_at).toLocaleDateString()} · ${o.status} · ${o.item_count} item${o.item_count === 1 ? '' : 's'}</div>
+        <div class="order-row-detail" hidden></div>
+      `;
+      const top = row.querySelector('.order-row-top');
+      const detail = row.querySelector('.order-row-detail');
+      let loaded = false;
+      top.addEventListener('click', async () => {
+        detail.hidden = !detail.hidden;
+        if (detail.hidden || loaded) return;
+        const full = await authFetch(`/orders/${o.id}`).then((r) => r.json());
+        loaded = true;
+        const itemsHtml = full.items
+          .map((it) => `<div class="cart-line-size">${it.product_name} — Size ${it.size} &times; ${it.quantity} — ${fmt(it.line_total)}</div>`)
+          .join('');
+        detail.innerHTML = `${itemsHtml}<p class="address-card-body">${addressSummaryLine(full.shipping_address)}</p>`;
+      });
+      list.appendChild(row);
+    });
   }
 
   document.getElementById('accountBtn').addEventListener('click', (e) => {
     e.preventDefault();
     show(currentUser ? 'account' : 'login');
+  });
+
+  document.getElementById('checkoutBtn').addEventListener('click', () => {
+    if (!currentUser) {
+      const note = document.getElementById('loginNote');
+      note.textContent = 'Log in to check out.';
+      note.hidden = false;
+      show('login');
+      return;
+    }
+    show('checkout');
   });
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -1299,6 +1659,62 @@
       cartList.appendChild(node);
     });
     cartSubtotalEl.textContent = fmt(cartSubtotal());
+  }
+
+  // Read-only line summary for the checkout view — same cart-line classes as
+  // #cartList for consistent styling, minus the qty +/- and remove controls
+  // (checkout reviews the cart, it doesn't edit it; go back to Cart for that).
+  function renderCheckout(){
+    const summary = document.getElementById('checkoutSummary');
+    summary.innerHTML = '';
+    cart.forEach((line) => {
+      const p = products.find((pp) => pp.id === line.id);
+      if (!p) return;
+      const row = document.createElement('div');
+      row.className = 'cart-line';
+      row.innerHTML = `
+        <div class="cart-line-info">
+          <div class="cart-line-top">
+            <span>${p.name}</span>
+            <span class="cart-line-price">${fmt(p.price * line.qty)}</span>
+          </div>
+          <span class="cart-line-size">Size ${line.size} &times; ${line.qty}</span>
+        </div>`;
+      summary.appendChild(row);
+    });
+    document.getElementById('checkoutSubtotal').textContent = fmt(cartSubtotal());
+    document.getElementById('checkoutError').hidden = true;
+    document.getElementById('checkoutAddressFormContainer').hidden = true;
+    renderCheckoutAddresses();
+  }
+
+  // Selectable version of the account address list — cards toggle
+  // aria-pressed on click (same pattern as PDP .size-chip) instead of
+  // exposing Edit/Delete, since checkout only needs to pick one.
+  async function renderCheckoutAddresses() {
+    const list = document.getElementById('checkoutAddressList');
+    const placeOrderBtn = document.getElementById('placeOrderBtn');
+    let addresses;
+    try {
+      addresses = await authFetch('/addresses').then((r) => r.json());
+    } catch {
+      return;
+    }
+    list.innerHTML = '';
+    if (!addresses.some((a) => a.id === selectedAddressId)) {
+      const def = addresses.find((a) => a.is_default) || addresses[0];
+      selectedAddressId = def ? def.id : null;
+    }
+    addresses.forEach((a) => {
+      const card = buildAddressCard(a);
+      card.setAttribute('aria-pressed', String(a.id === selectedAddressId));
+      card.addEventListener('click', () => {
+        selectedAddressId = a.id;
+        renderCheckoutAddresses();
+      });
+      list.appendChild(card);
+    });
+    placeOrderBtn.disabled = !selectedAddressId || cart.length === 0;
   }
 
   /* --- hero tilt: exact port of wingacy.com (window mousemove -> rAF lerp
