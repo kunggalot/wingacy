@@ -3,12 +3,15 @@ const tpl = document.getElementById('cardTpl');
 const swatchImgSrc = tpl.content.querySelector('.swatch img').src;
 const shopChapters = document.getElementById('shopChapters');
 
-/* collection chapters, in display order. Each maps to a real products.category
-   value so counts are always truthful (no invented "Collection N"). */
-const collections = [
-  { key: 'run', name: 'Run' },
-  { key: 'gym', name: 'Gym' },
-];
+/* collection chapters, in display order. Derived from whichever categories
+   actually exist on `products` (first-seen order) instead of a hardcoded
+   run/gym list, so a category an admin adds from the dashboard gets its own
+   chapter automatically — no storefront code change needed per new category. */
+function collectionsFromProducts(){
+  const seen = [];
+  products.forEach((p) => { if (!seen.includes(p.category)) seen.push(p.category); });
+  return seen.map((key) => ({ key, name: key.charAt(0).toUpperCase() + key.slice(1) }));
+}
 
 /* fade-up: reveal .fade-up nodes as they enter the viewport. Registered once,
    re-scanned after each renderShop for the freshly-built cards. Falls back to
@@ -29,6 +32,8 @@ function isSoldOut(p){
   return p.sizes.every((s) => !s.inStock);
 }
 
+const BADGE_LABEL = { sale: 'Sale', limited: 'Limited Stock' };
+
 /* --- shared card builder: used by the shop grids so the sold-out badge
    and click-to-PDP wiring stay in one place. --- */
 function buildCard(p){
@@ -45,7 +50,17 @@ function buildCard(p){
   }
   node.querySelector('.name').textContent = p.name;
   node.querySelector('.price').textContent = fmt(p.price);
-  node.querySelector('.sold-out-badge').hidden = !isSoldOut(p);
+  const soldOut = isSoldOut(p);
+  node.querySelector('.sold-out-badge').hidden = !soldOut;
+  // Sold-out is the automatic, ground-truth state (derived from sizes) —
+  // an editorial badge like Sale never overrides or competes with it.
+  const badgeEl = node.querySelector('.product-badge');
+  if (!soldOut && p.badge && BADGE_LABEL[p.badge]) {
+    badgeEl.textContent = BADGE_LABEL[p.badge];
+    badgeEl.hidden = false;
+  } else {
+    badgeEl.hidden = true;
+  }
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `${p.name}, ${fmt(p.price)}`);
@@ -59,7 +74,7 @@ function buildCard(p){
 function renderShop(){
   shopChapters.innerHTML = '';
   let idx = 0;
-  collections.forEach((col) => {
+  collectionsFromProducts().forEach((col) => {
     const items = products.filter((p) => p.category === col.key);
     if (!items.length) return; // skip empty collections so counts never lie
     idx++;
@@ -91,4 +106,7 @@ function renderShop(){
   observeFadeUp(); // register the new chapter headers + cards for reveal
 }
 
-renderShop();
+// First render now happens once data.js's fetch resolves (see its call to
+// renderShop()) instead of here — `products` starts empty since it's no
+// longer a hardcoded literal, so rendering immediately at script-load would
+// just draw zero collections.

@@ -6,6 +6,7 @@
    localhost:4000 are same-site today (port doesn't count), but two
    unrelated domains never are. --- */
 const AUTH_API = 'http://localhost:4000';
+const ADMIN_DASHBOARD_URL = AUTH_API + '/dashboard/';
 let currentUser = null;
 let selectedAddressId = null;
 
@@ -35,6 +36,7 @@ async function withSubmitLock(form, fn) {
 function renderAccount() {
   document.getElementById('accountNote').hidden = true;
   document.getElementById('accountEmail').textContent = currentUser ? currentUser.email : '';
+  document.getElementById('adminNavBtn').hidden = !currentUser || currentUser.role !== 'admin';
   if (currentUser) {
     renderAccountAddresses();
     renderOrderHistory();
@@ -290,6 +292,13 @@ document.getElementById('accountBtn').addEventListener('click', (e) => {
   show(currentUser ? 'account' : 'login');
 });
 
+// Admin dashboard lives on the backend (wingacy-auth), not this storefront —
+// opens in a new tab so browsing state here isn't lost. Same-origin as the
+// login POST, so the session cookie already covers it, no re-login needed.
+document.getElementById('adminNavBtn').addEventListener('click', () => {
+  window.open(ADMIN_DASHBOARD_URL, '_blank', 'noopener');
+});
+
 document.getElementById('checkoutBtn').addEventListener('click', () => {
   if (!currentUser) {
     const note = document.getElementById('loginNote');
@@ -362,6 +371,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     /* logout is best-effort client-side regardless of network state */
   }
   currentUser = null;
+  document.getElementById('adminNavBtn').hidden = true;
   show('login');
 });
 

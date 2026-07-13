@@ -141,6 +141,22 @@
   padding: 4px 8px;
   transform: rotate(3deg);
 }
+/* Editorial label (Sale/Limited Stock), not the automatic stock state — kept
+   visually distinct from .sold-out-badge: opposite corner, flat (no tilt),
+   invert tokens instead of --accent (which is reserved for the stock stamp). */
+.product-badge{
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  font: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--invert-fg);
+  background: var(--invert-bg);
+  padding: 4px 8px;
+}
 .card-meta{
   display: flex;
   align-items: baseline;

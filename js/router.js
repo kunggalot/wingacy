@@ -45,4 +45,16 @@ function show(name){
 document.querySelectorAll('[data-view]').forEach((t) => {
   t.addEventListener('click', (e) => { e.preventDefault(); show(t.dataset.view); });
 });
-show('home');
+
+// Lets an external link (e.g. a notification's #view-shop) land on the right
+// view instead of scrolling to an inert hidden element — the browser's
+// default anchor behavior otherwise does nothing useful here, since every
+// .view except the active one carries the `hidden` attribute. This only
+// covers link-in: internal nav clicks still call show() directly and don't
+// write back to the hash, so the address bar isn't wired as two-way routing.
+function showFromHash(){
+  const name = location.hash.replace(/^#view-/, '').replace(/^#/, '');
+  if (name && document.getElementById('view-' + name)) show(name);
+}
+window.addEventListener('hashchange', showFromHash);
+if (location.hash) showFromHash(); else show('home');
