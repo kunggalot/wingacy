@@ -158,15 +158,6 @@ body{
   align-items: center;
   gap: 8px;
 }
-.brand img{
-  height: 18px;
-  width: auto;
-  display: block;
-  filter: invert(var(--logo-invert, 1)); /* default = light theme (inverted white->black logo) */
-}
-:root[data-theme="light"] .brand img{ --logo-invert: 1; }
-:root[data-theme="dark"] .brand img{ --logo-invert: 0; }
-
 .brand span{
   font: var(--font-display);
   letter-spacing: 0.02em;
