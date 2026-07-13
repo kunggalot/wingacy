@@ -91,7 +91,12 @@
     display: flex;
     flex-direction: column;
   }
-  .views{ flex: 1; }
+  /* flex:1 keeps the footer pinned to the bottom of the 100vh .screen
+     column (sticky footer) on every view. display:flex here just lets a
+     specific view opt into flex:1 itself to fill that space edge-to-edge
+     (see #view-product below) — views that don't opt in keep their normal
+     content-sized height, unaffected. */
+  .views{ flex: 1; display: flex; flex-direction: column; position: relative; } /* anchor for the outgoing view during a crossfade */
 
   /* --- hoverable: tight invert rectangle wipes in from the left --- */
   .hoverable{
@@ -124,7 +129,9 @@
   .hoverable svg{ stroke: var(--ink); }
   .hoverable span, .hoverable svg{
     position: relative;
-    transition: color 0.24s ease, stroke 0.24s ease, transform 0.28s cubic-bezier(0.62,0.05,0.15,1);
+    /* opacity is here so the Add-to-Cart label can crossfade on swap (see pdpAdd);
+       harmless for every other button since none of them animate opacity */
+    transition: color 0.24s ease, stroke 0.24s ease, transform 0.28s cubic-bezier(0.62,0.05,0.15,1), opacity 0.12s ease;
   }
   .hoverable:hover::before,
   .hoverable:focus-visible::before{ transform: scaleX(1); }
@@ -140,9 +147,11 @@
     position: sticky;
     top: 0;
     z-index: 5;
-    display: flex;
+    /* 3-col grid pins the logo (auto center col) to dead-center: the two 1fr
+       side columns stay equal regardless of how wide the button/icon groups get */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     padding: 16px var(--gutter);
     border-bottom: 1px solid var(--line);
@@ -168,22 +177,29 @@
     letter-spacing: 0.02em;
     font-size: 0.95rem;
   }
+  .navbar-links,
   .navbar-right{
     display: flex;
     align-items: center;
     gap: 8px;
   }
+  /* explicit column placement so DOM order doesn't matter: logo center (2),
+     buttons pinned far-left (1), icons pinned far-right (3) */
+  /* pin all three to row 1 — default sparse auto-placement won't backtrack, so
+     without an explicit row the col-1 group (declared after brand in the DOM)
+     spills onto a second row */
+  .brand{ grid-column: 2; grid-row: 1; }
+  /* margin-left:-7px cancels the leading .hoverable padding so "PRO" sits flush
+     with the left gutter (same trick .bag uses with margin-right to hug the right) */
+  .navbar-links{ grid-column: 1; grid-row: 1; justify-self: start; margin-left: -7px; }
+  .navbar-right{ grid-column: 3; grid-row: 1; justify-self: end; }
   .bag{
     position: relative;
-    gap: 0;
-    margin-right: -7px;
-  }
-  .bag svg{
-    transform: translateY(-1px); /* icon ink sits ~1px below its box center vs the digit */
+    margin-right: -7px; /* cancel trailing .hoverable padding so CART sits flush with the right gutter */
   }
   .hoverable:hover .bag-count,
   .hoverable:focus-visible .bag-count{
-    transform: none; /* don't inherit the nav-text hover nudge — keeps icon/number gap fixed on hover */
+    transform: none; /* don't inherit the nav-text hover nudge — keeps label/count gap fixed on hover */
   }
   .bag-count{
     font: var(--font-mono);
@@ -196,13 +212,21 @@
     justify-content: center;
     color: var(--ink);
   }
+  /* pop the bag digit when an item lands in it — updateBagCount re-triggers this
+     only when the count goes up (not on remove/qty-down) */
+  @keyframes bagPop{ 0%{ transform: scale(1); } 40%{ transform: scale(1.35); } 100%{ transform: scale(1); } }
+  .bag-count.is-bumped{ animation: bagPop 0.32s ease; }
 
   /* --- hero: split poster — type carries the left, photo the right --- */
   .hero{
     display: grid;
     grid-template-columns: 1.1fr 1fr;
     border-bottom: 1px solid var(--line);
-    min-height: min(78vh, 840px);
+    /* single-screen home: hero fills the viewport minus the three fixed bands
+       stacked with it — navbar(57) + WATCH-NOW band(88) + footer(73) — so the
+       whole home view fits one screen with no scroll. Mobile (<=720px) resets
+       this to min-height:0 and stacks/scrolls normally. */
+    min-height: calc(100svh - 57px - 88px - 73px);
   }
   .hero-copy{
     display: flex;
@@ -275,6 +299,62 @@
     object-position: center 100%; /* crop toward the garment/print, not the blank headroom above */
   }
 
+  /* --- PRO: single-screen recruitment. Light surface, two-line copy + one
+     Apply button. No roster/products yet (team not formed). Sized so the copy
+     screen + footer both fit one viewport with no scroll:
+       height = 100svh - navbar(57px) - footer(73px). --- */
+  .pro{
+    position: relative;
+    min-height: calc(100svh - 57px - 73px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding: clamp(32px, 5vw, 72px) var(--gutter);
+    background: var(--surface);
+  }
+  .pro-bg{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+  .pro-copy{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pro-kicker{
+    margin: 0 0 14px;
+    font: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .pro-kicker b{ font-weight: inherit; color: var(--accent-text); }
+  .pro-title{
+    margin: 0 0 30px;
+    font: var(--font-display);
+    font-size: clamp(2.6rem, 8vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    color: var(--ink);
+    max-width: 12ch;
+  }
+  /* reuse .hoverable as-is (ink text, invert wipe) — bordered like .hero-cta */
+  .pro-apply{
+    border: 1px solid var(--ink);
+    padding: 14px 30px;
+    font-size: 0.78rem;
+  }
+  .pro-apply::before{ inset: -1px; } /* fill over the border, same trick as .hero-cta */
+
   /* --- home: full-width strip linking to the shop --- */
   .home-band{
     display: flex;
@@ -283,7 +363,10 @@
     gap: 12px;
     width: 100%;
     padding: 26px var(--gutter);
-    border-bottom: 1px solid var(--line);
+    /* no border-bottom — .home-band touches .site-footer directly (zero gap),
+       and .site-footer already owns that boundary line via its own border-top.
+       Two 1px borders on the same seam render as one thick/doubled line.
+       See "Divider ownership" in CLAUDE.md. */
   }
   .home-band .band-label{
     font: var(--font-display);
@@ -308,8 +391,10 @@
      the inverted wipe background */
   .hoverable:hover .band-icon,
   .hoverable:focus-visible .band-icon{ border-color: var(--invert-fg); }
-  /* --- catalog: one connected hairline grid --- */
-  .catalog{ padding: 0 0 40px; }
+  /* --- catalog: gapped grid of floating cards (4-up) --- */
+  /* outer gap: inset the grid by --gutter on top/sides so its edges line up
+     with the navbar/hero gutter (bottom keeps its 40px rhythm) */
+  .catalog{ padding: var(--gutter) var(--gutter) 40px; }
   .shop-head{
     padding: clamp(28px, 4vw, 52px) var(--gutter);
     text-align: center;
@@ -322,6 +407,42 @@
     letter-spacing: -0.03em;
     text-transform: uppercase;
   }
+
+  /* --- shop collections: each category renders as an editorial "chapter" —
+     an indexed header (01 / RUN / count) then that collection's card grid.
+     Separate from the generic .section-head used by cart/checkout/auth. --- */
+  .collection + .collection{ margin-top: clamp(36px, 5vw, 64px); }
+  .collection-head{
+    display: flex; align-items: baseline; gap: 14px;
+    padding-bottom: 12px; margin-bottom: clamp(16px, 2vw, 24px);
+    border-bottom: 1px solid var(--line);
+  }
+  .collection-idx{
+    font: var(--font-display); font-size: 1rem; color: var(--accent-text);
+    font-variant-numeric: tabular-nums;
+  }
+  .collection-name{
+    margin: 0; font: var(--font-display);
+    font-size: clamp(1.3rem, 3vw, 2rem); letter-spacing: -0.02em; text-transform: uppercase;
+  }
+  .collection-count{
+    margin-left: auto; align-self: center;
+    font: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  /* --- fade-up: banner, collection headers and cards rise + fade as they
+     scroll into view (IntersectionObserver toggles .is-in). Deliberate scroll
+     choreography, so it honors reduced-motion by rendering them at rest. --- */
+  .fade-up{
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2,0.7,0.2,1);
+  }
+  .fade-up.is-in{ opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce){
+    .fade-up{ opacity: 1; transform: none; transition: none; }
+  }
+
   .section-head{
     display: flex;
     align-items: baseline;
@@ -339,20 +460,20 @@
     font: var(--font-mono);
     color: var(--muted);
   }
-  /* hairlines live on the cards (right/bottom), not on a gap background —
-     a partially-filled row must leave clean surface, not a slab of --line */
+  /* cards float on the surface, separated by a small gap — no hairline grid.
+     fixed 4-up on desktop, drops to 2-up on phones (see media query below) */
   .grid{
     display: grid;
-    /* min(300px, 42vw) -> two dense columns on phones instead of one giant card */
-    grid-template-columns: repeat(auto-fill, minmax(min(300px, 42vw), 1fr));
-    border-top: 1px solid var(--line);
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(12px, 1.5vw, 16px);
+  }
+  @media (max-width: 720px){
+    .grid{ grid-template-columns: repeat(2, 1fr); }
   }
   .card{
     display: flex;
     flex-direction: column;
     background: var(--surface);
-    border-right: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
     cursor: pointer;
   }
   .card:focus-visible{ outline: 1px solid var(--ink); outline-offset: -1px; }
@@ -418,8 +539,7 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 10px;
-    padding: 12px 12px 14px;
-    border-top: 1px solid var(--line);
+    padding: 12px 2px 14px;
   }
   .card-meta .name{
     font: var(--font-display);
@@ -463,8 +583,14 @@
     inset: 0;
     background: linear-gradient(135deg, var(--tint-a), var(--tint-b));
     overflow: hidden;
+    /* frames are stacked; only the active one is opaque so swipe/dot crossfades
+       instead of hard-cutting. non-active stays in the DOM (no display:none) so
+       opacity can transition — pointer-events off so it can't catch drags */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
   }
-  .pdp-gallery-item[hidden]{ display: none; }
+  .pdp-gallery-item.is-active{ opacity: 1; pointer-events: auto; }
   .pdp-gallery-item img{
     position: absolute;
     top: 50%;
@@ -489,11 +615,13 @@
     filter: none;
   }
 
-  .pdp-back{
-    padding: 10px 16px;
-    justify-content: center;
-    width: 100%;
-    margin-top: 10px;
+  /* secondary action, sized to its content (not a full-width bar) so its
+     hover-invert never competes visually with the primary CTA above it */
+  .view-back{
+    display: flex;
+    width: fit-content;
+    padding: 8px 14px;
+    margin: 16px auto 0;
     text-decoration: none;
   }
 
@@ -525,12 +653,32 @@
     padding: 16px var(--gutter) 40px;
   }
   @media (min-width: 900px){
+    /* Full-height chain so the gallery photo always fills the viewport
+       (footer-to-navbar), instead of stopping at its own aspect-ratio and
+       leaving dead space above the sticky footer. Only #view-product opts
+       into this — every other view keeps its normal content-sized height.
+       Guarded with :not([hidden]) so this ID rule can't out-specify the
+       global `.view[hidden]{display:none}` and leak the PDP onto other
+       views when it's supposed to be hidden. */
+    #view-product:not([hidden]){ display: flex; flex-direction: column; flex: 1; }
     .pdp{
       display: grid;
       grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr);
-      border-bottom: 1px solid var(--line);
+      grid-template-rows: minmax(0, 1fr);
+      flex: 1;
+      /* no border-bottom here — .pdp now touches .site-footer directly
+         (zero gap), and .site-footer already owns that boundary line via
+         its own border-top. See "Divider ownership" in CLAUDE.md. */
     }
     .pdp-gallery{ border-right: 1px solid var(--line); }
+    #pdpGallery{
+      /* base rule's aspect-ratio/max-height was for capping a
+         width-derived height; here height comes from the grid row instead,
+         so let it stretch to fill and drop the old cap entirely */
+      height: 100%;
+      max-height: none;
+      aspect-ratio: auto;
+    }
     .pdp-sheet{
       border-top: none;
       align-self: center;
@@ -553,6 +701,10 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
+  /* errors/notes toggle via [hidden]; going display:none -> block replays this
+     animation, so they settle in instead of snapping (same trick as .view) */
+  @keyframes msgIn{ from{ opacity: 0; transform: translateY(-2px); } to{ opacity: 1; transform: none; } }
+  .pdp-error, .auth-error, .auth-note{ animation: msgIn 0.15s ease both; }
   .auth-view{ width: 100%; max-width: 420px; margin: 0 auto; padding: 40px var(--gutter) 60px; }
   /* .section-head carries its own --gutter side padding for the shop/cart
      context; inside the already-guttered .auth-view that double-indents the
@@ -620,6 +772,10 @@
   .order-row-meta{ font: var(--font-mono); font-size: 0.62rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
   .order-row-detail{ margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
   .order-row-detail[hidden]{ display: none; }
+  /* expand: order detail un-hides (display none->block replays this) and the
+     address form is freshly cloned in on open — both slide+fade down into place */
+  @keyframes expandIn{ from{ opacity: 0; transform: translateY(-6px); } to{ opacity: 1; transform: none; } }
+  .order-row-detail, .address-form{ animation: expandIn 0.2s ease both; }
   .add-to-cart{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; }
 
   /* --- cart --- */
@@ -629,9 +785,22 @@
     padding: 14px var(--gutter);
     border-bottom: 1px solid var(--line);
   }
+  /* enter: only lines new since the last render get tagged (see renderCart), so
+     adjusting qty — which re-renders the whole list — doesn't re-flash it.
+     leave: the Remove button fades the line out before the list re-renders. */
+  @keyframes cartLineIn{ from{ opacity: 0; transform: translateX(8px); } to{ opacity: 1; transform: none; } }
+  .cart-line-enter{ animation: cartLineIn 0.24s ease both; }
+  .cart-line-leave{
+    opacity: 0;
+    transform: translateX(8px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
   .cart-line-media{
-    width: 56px;
-    aspect-ratio: 4 / 5;
+    height: 70px;
+    /* real product photos are square (640x640) — matching that exactly
+       means no crop AND no letterbox, regardless of object-fit */
+    aspect-ratio: 1 / 1;
     background: linear-gradient(135deg, var(--tint-a), var(--tint-b));
     position: relative;
     overflow: hidden;
@@ -656,7 +825,6 @@
     height: 100%;
     transform: none;
     object-fit: cover;
-    object-position: center 80%;
     opacity: 1;
     filter: none;
   }
@@ -694,6 +862,71 @@
   .checkout{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; }
   /* cart reads as a receipt — keep it a narrow column even on wide screens */
   .cart-view{ width: 100%; max-width: 760px; margin: 0 auto; padding-bottom: 40px; }
+
+  /* --- mini-cart: slide-in confirmation shown right after Add to Cart, so a
+     single add previews the item without yanking the user off the PDP. Kept in
+     the DOM (not toggled via [hidden]) so the panel can transition; `.open`
+     gates visibility + pointer-events together. --- */
+  .mini-cart{
+    position: fixed;
+    inset: 0;
+    z-index: 60; /* above navbar (5) and the PDP sheet */
+    visibility: hidden;
+    pointer-events: none;
+    /* delay flipping to hidden until the fade/slide-out finishes, otherwise
+       the exit animation is cut off the instant `.open` is removed */
+    transition: visibility 0s linear 0.28s;
+  }
+  .mini-cart.open{ visibility: visible; pointer-events: auto; transition-delay: 0s; }
+  .mini-cart-backdrop{
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--ink) 45%, transparent);
+    opacity: 0;
+    transition: opacity 0.28s ease;
+  }
+  .mini-cart.open .mini-cart-backdrop{ opacity: 1; }
+  .mini-cart-panel{
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: min(360px, 90vw);
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.28s ease;
+  }
+  .mini-cart.open .mini-cart-panel{ transform: translateX(0); opacity: 1; }
+  .mini-cart-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .mini-cart-title{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .mini-cart-title svg{ color: var(--accent-text); }
+  /* reuse the cart-line layout but drop its row divider — it's a lone preview */
+  .mini-cart-line{ border-bottom: none; }
+  .mini-cart-actions{
+    margin-top: auto;
+    padding: 16px var(--gutter);
+    border-top: 1px solid var(--line);
+  }
 
   /* --- footer --- */
   .site-footer{
@@ -750,6 +983,17 @@
   .view[hidden]{ display: none; }
   .view{ animation: viewIn 0.18s ease both; }
   @keyframes viewIn{ from{ opacity: 0; } to{ opacity: 1; } }
+  /* crossfade: the outgoing view fades out on top of the incoming one (which is
+     fading in underneath via viewIn). absolute + high z so it overlays without
+     pushing layout; pointer-events off so clicks reach the incoming view. */
+  @keyframes viewOut{ from{ opacity: 1; } to{ opacity: 0; } }
+  .view-leaving{
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    animation: viewOut 0.18s ease both;
+  }
 
   /* brand is a <button> (click -> Home) but must still read as the wordmark */
   button.brand{ background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; color: inherit; }
@@ -758,6 +1002,11 @@
 
   @media (prefers-reduced-motion: reduce){
     .view{ animation: none; }
+    .pdp-gallery-item{ transition: none; }
+    .cart-line-enter{ animation: none; }
+    .cart-line-leave{ transition: none; }
+    .pdp-error, .auth-error, .auth-note{ animation: none; }
+    .order-row-detail, .address-form{ animation: none; }
   }
 </style>
 
@@ -769,24 +1018,16 @@
         <img src="data:image/png;base64,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" alt="" />
         <span>WINGACY</span>
       </button>
+      <div class="navbar-links">
+        <button class="hoverable" type="button" data-view="pro"><span>PRO</span></button>
+        <button class="hoverable" type="button" data-view="pri"><span>PRI</span></button>
+        <button class="hoverable" type="button" data-view="shop"><span>SHOP</span></button>
+      </div>
       <div class="navbar-right">
-        <button class="hoverable" type="button" id="accountBtn" aria-label="Account" disabled>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4.5 3.6-7 8-7s8 2.5 8 7"/>
-          </svg>
-        </button>
-        <button class="hoverable" type="button" aria-label="Notifications" disabled>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <path d="M6 9a6 6 0 0 1 12 0c0 4.5 1.8 5.5 1.8 5.5H4.2S6 13.5 6 9Z"/>
-            <path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/>
-          </svg>
-        </button>
-        <button class="hoverable bag" id="bagBtn" aria-label="Bag" data-view="cart">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-            <path d="M6 8h12l-1 13H7L6 8Z"/>
-            <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
-          </svg>
+        <button class="hoverable" type="button" id="accountBtn"><span>ACC</span></button>
+        <button class="hoverable" type="button"><span>NOTI</span></button>
+        <button class="hoverable bag" type="button" id="bagBtn" data-view="cart">
+          <span>CART</span>
           <span class="bag-count" id="bagCount">0</span>
         </button>
       </div>
@@ -796,10 +1037,10 @@
     <div class="view" id="view-home">
     <section class="hero">
       <div class="hero-copy">
-        <p class="hero-drop"><b>Prachin Buri</b>, Thailand</p>
+        <p class="hero-drop"><b>Prachinburi</b></p>
         <h1 class="hero-title">Wingacy</h1>
         <div class="hero-cta-row">
-          <a class="hoverable hero-cta" aria-disabled="true" tabindex="-1"><span>Explore the shop</span></a>
+          <a class="hoverable hero-cta" href="#" data-view="shop"><span>Explore the shop</span></a>
           <span class="hero-stock" id="heroStock">COMING SOON..</span>
         </div>
       </div>
@@ -809,8 +1050,8 @@
       </div>
       </div>
     </section>
-    <a class="hoverable home-band" aria-disabled="true" tabindex="-1">
-      <span class="band-label">View all products</span>
+    <a class="hoverable home-band" href="#" data-view="watch">
+      <span class="band-label">Watch now</span>
       <span class="band-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
           <path d="M7 17L17 7"/><path d="M9 7h8v8"/>
@@ -820,14 +1061,43 @@
     </div>
 
     <div class="view" id="view-shop" hidden>
-    <section class="catalog">
-      <div class="shop-head">
-        <h1>Shop All</h1>
-      </div>
+      <section class="catalog" id="shopChapters">
+        <!-- collection chapters injected by renderShop() -->
+      </section>
+    </div>
 
-      <div class="grid" id="gridShop">
-        <!-- cards injected via template below -->
+    <!-- PRO / PRI: placeholder tabs — no content yet, store not live (same
+         verifiable "COMING SOON.." state as #heroStock, not AI-slop filler) -->
+    <!-- PRO: recruitment-only screen. Team not formed yet, so no roster/products —
+         just a storytelling photo + two lines + Apply. Drop the real running photo
+         into <img class="pro-bg"> as a base64 data URI when available; until then the
+         dark .pro ground stands in. Apply target is not wired yet (button, no href). -->
+    <div class="view" id="view-pro" hidden>
+    <section class="pro">
+      <!-- <img class="pro-bg" src="data:image/..." alt="Wingacy runner"> -->
+      <div class="pro-copy">
+        <p class="pro-kicker">Open for <b>applications</b></p>
+        <h1 class="pro-title">Run for Wingacy.</h1>
+        <button class="hoverable pro-apply" type="button">
+          <span>Apply</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M7 17L17 7"/><path d="M9 7h8v8"/>
+          </svg>
+        </button>
       </div>
+    </section>
+    </div>
+
+    <div class="view" id="view-pri" hidden>
+    <section class="catalog">
+      <p class="cart-empty">Coming soon..</p>
+    </section>
+    </div>
+
+    <!-- Watch: placeholder — no video asset yet, real content to be added later -->
+    <div class="view" id="view-watch" hidden>
+    <section class="catalog">
+      <p class="cart-empty">Coming soon..</p>
     </section>
     </div>
 
@@ -845,7 +1115,7 @@
         <div class="size-chips" id="pdpSizes" role="group" aria-label="Size"></div>
         <p class="pdp-error" id="pdpError" hidden>Please select a size</p>
         <button class="hoverable add-to-cart" id="pdpAdd" type="button"><span>Add to Cart</span></button>
-        <a class="hoverable pdp-back" href="#" data-view="shop">
+        <a class="hoverable view-back" href="#" data-view="shop">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M15 6l-6 6 6 6"/>
           </svg>
@@ -870,6 +1140,12 @@
         </div>
         <button class="hoverable checkout" type="button" id="checkoutBtn"><span>Checkout</span></button>
       </div>
+      <a class="hoverable view-back" href="#" data-view="shop">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M15 6l-6 6 6 6"/>
+        </svg>
+        <span>Back</span>
+      </a>
     </section>
     </div>
 
@@ -965,6 +1241,30 @@
       <span class="footer-mark" aria-hidden="true"></span>
     </footer>
 
+    <!-- mini-cart drawer: previews the just-added item (see .mini-cart CSS) -->
+    <div class="mini-cart" id="miniCart">
+      <div class="mini-cart-backdrop" id="miniCartBackdrop"></div>
+      <aside class="mini-cart-panel" role="dialog" aria-modal="true" aria-labelledby="miniCartTitle">
+        <div class="mini-cart-head">
+          <span class="mini-cart-title" id="miniCartTitle">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M5 12l5 5 9-11"/>
+            </svg>
+            <span>Added to bag</span>
+          </span>
+          <button class="hoverable mini-cart-close" id="miniCartClose" type="button" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="cart-line mini-cart-line" id="miniCartLine"><!-- injected on add --></div>
+        <div class="mini-cart-actions">
+          <button class="hoverable checkout" id="miniCartView" type="button"><span>View Cart</span></button>
+        </div>
+      </aside>
+    </div>
+
   </div>
 </div>
 
@@ -1048,12 +1348,43 @@
   /* --- view router: exposed as a plain top-level fn (not an IIFE) so the
      PDP/cart code below can navigate views too, not just nav-link clicks. --- */
   const views = [...document.querySelectorAll('.view')];
+  const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function show(name){
     const target = document.getElementById('view-' + name) ? name : 'home';
-    views.forEach((v) => { v.hidden = (v.id !== 'view-' + target); });
+    const next = document.getElementById('view-' + target);
+    // finalize any view still mid-leave from a rapid previous switch, so the
+    // "currently visible" lookup below is unambiguous
+    views.forEach((v) => {
+      if (v.classList.contains('view-leaving')) { v.classList.remove('view-leaving'); v.hidden = true; }
+    });
+    const curr = views.find((v) => !v.hidden && v !== next);
+
+    // populate the incoming view before it fades in
     if (target === 'cart') renderCart();
     if (target === 'checkout') renderCheckout();
     if (target === 'account') renderAccount();
+
+    // reveal the incoming view (fades in via viewIn); keep `curr` mounted so it
+    // can fade out over it, hide any other stragglers immediately
+    views.forEach((v) => { if (v !== next && v !== curr) v.hidden = true; });
+    next.hidden = false;
+
+    if (curr && curr !== next && !prefersReducedMotion()) {
+      curr.classList.add('view-leaving');
+      let done = false;
+      const cleanup = () => {
+        if (done) return;
+        done = true;
+        curr.classList.remove('view-leaving');
+        curr.hidden = true;
+      };
+      curr.addEventListener('animationend', cleanup, { once: true });
+      setTimeout(cleanup, 260); // fallback if animationend is missed (tab backgrounded)
+    } else if (curr && curr !== next) {
+      curr.hidden = true;
+    }
+
     window.scrollTo(0, 0);
   }
   document.querySelectorAll('[data-view]').forEach((t) => {
@@ -1463,7 +1794,30 @@
   const fmt = (n) => `฿${n.toLocaleString('en-US')}`;
   const tpl = document.getElementById('cardTpl');
   const swatchImgSrc = tpl.content.querySelector('.swatch img').src;
-  const shopGrid = document.getElementById('gridShop');
+  const shopChapters = document.getElementById('shopChapters');
+
+  /* collection chapters, in display order. Each maps to a real products.category
+     value so counts are always truthful (no invented "Collection N"). */
+  const collections = [
+    { key: 'run', name: 'Run' },
+    { key: 'gym', name: 'Gym' },
+  ];
+
+  /* fade-up: reveal .fade-up nodes as they enter the viewport. Registered once,
+     re-scanned after each renderShop for the freshly-built cards. Falls back to
+     showing everything if IntersectionObserver is unavailable. */
+  const fadeObserver = ('IntersectionObserver' in window)
+    ? new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting){ e.target.classList.add('is-in'); fadeObserver.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' })
+    : null;
+  function observeFadeUp(){
+    const nodes = document.querySelectorAll('.fade-up:not(.is-in)');
+    if (!fadeObserver){ nodes.forEach((n) => n.classList.add('is-in')); return; }
+    nodes.forEach((n) => fadeObserver.observe(n));
+  }
   function isSoldOut(p){
     return p.sizes.every((s) => !s.inStock);
   }
@@ -1496,12 +1850,38 @@
   }
 
   function renderShop(){
-    shopGrid.innerHTML = '';
-    products.forEach((p) => shopGrid.appendChild(buildCard(p)));
+    shopChapters.innerHTML = '';
+    let idx = 0;
+    collections.forEach((col) => {
+      const items = products.filter((p) => p.category === col.key);
+      if (!items.length) return; // skip empty collections so counts never lie
+      idx++;
+      const chapter = document.createElement('div');
+      chapter.className = 'collection';
+
+      const head = document.createElement('div');
+      head.className = 'collection-head fade-up';
+      head.innerHTML =
+        `<span class="collection-idx">${String(idx).padStart(2, '0')}</span>` +
+        `<h2 class="collection-name">${col.name}</h2>` +
+        `<span class="collection-count">${items.length} ${items.length === 1 ? 'piece' : 'pieces'}</span>`;
+
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      items.forEach((p) => {
+        const card = buildCard(p);
+        card.classList.add('fade-up');
+        grid.appendChild(card);
+      });
+
+      chapter.append(head, grid);
+      shopChapters.appendChild(chapter);
+    });
     // re-renders replace the card nodes, so freshly-created swatches need tilt
     // wiring again; undefined on the very first render (tilt module isn't
     // parsed yet — its IIFE binds that initial batch itself)
     if (typeof rebindSwatchTilt === 'function') rebindSwatchTilt();
+    observeFadeUp(); // register the new chapter headers + cards for reveal
   }
 
   renderShop();
@@ -1516,7 +1896,7 @@
   function showGalleryImage(i){
     const items = [...pdpGallery.children];
     galleryIndex = (i + items.length) % items.length;
-    items.forEach((item, idx) => { item.hidden = idx !== galleryIndex; });
+    items.forEach((item, idx) => item.classList.toggle('is-active', idx === galleryIndex));
     [...pdpDots.children].forEach((dot, idx) => dot.setAttribute('aria-current', String(idx === galleryIndex)));
   }
 
@@ -1559,7 +1939,7 @@
     for (let i = 0; i < currentProduct.imageCount; i++) {
       const item = document.createElement('div');
       item.className = 'pdp-gallery-item';
-      item.hidden = i !== 0;
+      item.classList.toggle('is-active', i === 0);
       // Real photography only covers slots 0/1 (photo/photoHover) so far;
       // remaining slots fall back to the shared logo-watermark placeholder
       // until more angles are shot, same as the shop card treatment.
@@ -1614,13 +1994,61 @@
       return;
     }
     addToCart(currentProduct.id, selectedSize, 1);
+    openMiniCart(currentProduct.id, selectedSize);
+    // crossfade the label out, swap the text at zero opacity, fade it back in
     const span = pdpAdd.querySelector('span');
-    span.textContent = 'Added';
-    setTimeout(() => { span.textContent = 'Add to Cart'; }, 900);
+    const setLabel = (text) => {
+      if (prefersReducedMotion()) { span.textContent = text; return; }
+      span.style.opacity = '0';
+      setTimeout(() => { span.textContent = text; span.style.opacity = '1'; }, 120);
+    };
+    setLabel('Added');
+    setTimeout(() => setLabel('Add to Cart'), 900);
+  });
+
+  /* --- mini-cart drawer: previews the just-added line, then offers a jump to
+     the full cart. Reuses the .cart-line layout (minus qty controls) so the
+     preview matches how the item reads in the cart view. --- */
+  const miniCart = document.getElementById('miniCart');
+  const miniCartLine = document.getElementById('miniCartLine');
+
+  function openMiniCart(id, size){
+    const p = products.find((pp) => pp.id === id);
+    if (!p) return;
+    const line = findLine(id, size);
+    const qty = line ? line.qty : 1;
+    miniCartLine.innerHTML = `
+      <div class="cart-line-media${p.photo ? ' has-photo' : ''}">
+        <img src="${p.photo || swatchImgSrc}" alt="" />
+      </div>
+      <div class="cart-line-info">
+        <div class="cart-line-top">
+          <span class="cart-line-name"></span>
+          <span class="cart-line-price">${fmt(p.price)}</span>
+        </div>
+        <span class="cart-line-size">Size ${size} · Qty ${qty}</span>
+      </div>`;
+    // name via textContent (not the template literal) to stay consistent with
+    // renderCart and avoid trusting product strings as markup
+    miniCartLine.querySelector('.cart-line-name').textContent = p.name;
+    miniCart.classList.add('open');
+    document.getElementById('miniCartClose').focus();
+  }
+
+  function closeMiniCart(){ miniCart.classList.remove('open'); }
+
+  document.getElementById('miniCartClose').addEventListener('click', closeMiniCart);
+  document.getElementById('miniCartBackdrop').addEventListener('click', closeMiniCart);
+  document.getElementById('miniCartView').addEventListener('click', () => { closeMiniCart(); show('cart'); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && miniCart.classList.contains('open')) closeMiniCart();
   });
 
   /* --- cart: line items are { id, size, qty }, merged on repeat add-to-cart --- */
   let cart = [];
+  // keys (`id|size`) present in the last render, so renderCart can fade in only
+  // genuinely new lines and skip the ones that merely re-rendered on a qty change
+  let prevCartKeys = new Set();
   const cartTpl = document.getElementById('cartLineTpl');
   const cartList = document.getElementById('cartList');
   const cartEmpty = document.getElementById('cartEmpty');
@@ -1650,9 +2078,20 @@
   }
 
   function removeLine(id, size){
-    cart = cart.filter((l) => !(l.id === id && l.size === size));
-    updateBagCount();
-    renderCart();
+    const commit = () => {
+      cart = cart.filter((l) => !(l.id === id && l.size === size));
+      updateBagCount();
+      renderCart();
+    };
+    const el = cartList.querySelector(`.cart-line[data-key="${id}|${size}"]`);
+    if (!el || prefersReducedMotion()) { commit(); return; }
+    // fade the line out in place, then re-render the list under it. guard with a
+    // timer in case transitionend is missed (e.g. tab backgrounded mid-fade)
+    el.classList.add('cart-line-leave');
+    let done = false;
+    const finish = () => { if (done) return; done = true; commit(); };
+    el.addEventListener('transitionend', finish, { once: true });
+    setTimeout(finish, 300);
   }
 
   function cartCount(){
@@ -1667,7 +2106,14 @@
   }
 
   function updateBagCount(){
-    bagCount.textContent = cartCount();
+    const prev = +bagCount.textContent || 0;
+    const next = cartCount();
+    bagCount.textContent = next;
+    if (next > prev && !prefersReducedMotion()){
+      bagCount.classList.remove('is-bumped');
+      void bagCount.offsetWidth; // force reflow so the same animation can replay
+      bagCount.classList.add('is-bumped');
+    }
   }
 
   function renderCart(){
@@ -1675,10 +2121,16 @@
     cartItemCount.textContent = `(${cartCount()})`;
     cartEmpty.hidden = cart.length > 0;
     cartSummary.hidden = cart.length === 0;
+    const nextKeys = new Set();
     cart.forEach((line) => {
       const p = products.find((pp) => pp.id === line.id);
       if (!p) return;
+      const key = line.id + '|' + line.size;
+      nextKeys.add(key);
       const node = cartTpl.content.cloneNode(true);
+      const el = node.querySelector('.cart-line');
+      el.dataset.key = key;
+      if (!prevCartKeys.has(key)) el.classList.add('cart-line-enter');
       const media = node.querySelector('.cart-line-media');
       if (p.photo) media.classList.add('has-photo');
       node.querySelector('img').src = p.photo || swatchImgSrc;
@@ -1691,6 +2143,7 @@
       node.querySelector('.remove').addEventListener('click', () => removeLine(line.id, line.size));
       cartList.appendChild(node);
     });
+    prevCartKeys = nextKeys;
     cartSubtotalEl.textContent = fmt(cartSubtotal());
   }
 

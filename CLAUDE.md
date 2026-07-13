@@ -41,8 +41,9 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 ## Component conventions
 
 - **`.hoverable`** — ปุ่ม/ลิงก์มาตรฐานทุกตัว (nav, bag, add) ใช้คลาสนี้ เอฟเฟกต์คือ invert rectangle wipe จากซ้าย (`::before` scaleX) ห้ามสร้างปุ่มสไตล์ใหม่ ให้ reuse `.hoverable`
-- **Grid** — `.grid` เป็น hairline grid: เส้นมาจาก `border-right/bottom` บนการ์ดแต่ละใบ (ไม่ใช่ gap+พื้น `--line` แล้ว — แถวที่ไม่เต็มจะได้ไม่เห็นแผ่นสีเส้น) คอลัมน์เป็น `auto-fill minmax(min(300px,42vw),1fr)` → มือถือได้ 2 คอลัมน์เอง
+- **Grid** — `.grid` เป็นการ์ดลอยคั่นด้วย `gap: clamp(12px,1.5vw,16px)` (ไม่มีเส้น hairline กรอบการ์ด/ไม่มี `.card-meta` border-top แล้ว) คอลัมน์ fix `repeat(4,1fr)` desktop → `@media(max-width:720px)` ลดเป็น `repeat(2,1fr)` มือถือ; ระยะขอบนอกทั้ง grid มาจาก `.catalog{ padding: var(--gutter) var(--gutter) 40px }` (align กับ gutter ของ navbar/hero)
 - **Accessibility** — ปุ่ม icon-only ต้องมี `aria-label`; ลิงก์ nav ที่ active ใส่ `aria-current="page"`; ทุก interactive มี `:focus-visible`
+- **Divider ownership** — เส้นคั่นระหว่าง element สองตัวที่มาต่อกันสนิท (gap = 0) ให้ **ฝั่งเดียวเท่านั้น** เป็นเจ้าของเส้น ห้ามใส่ `border-bottom` ของตัวบน + `border-top` ของตัวล่างพร้อมกันบนรอยต่อเดียวกัน เพราะพอไม่มี gap คั่น จะเห็นเป็นเส้นหนา/เส้นซ้อนแทนเส้นเดียว — กฎการเลือกเจ้าของ: **element ที่ปรากฏซ้ำ/คงที่ทุกหน้า (เช่น `.site-footer`) เป็นเจ้าของเส้นเสมอ** ส่วน element ที่เปลี่ยนไปตาม view (เช่น `.pdp`, `.cart-view`) ห้ามประกาศ border บนรอยต่อที่ชนกับ element คงที่นั้นซ้ำ ถ้ามี view ไหนต้องการเส้นคั่นเฉพาะตัว (ไม่ใช่รอยต่อกับ footer) ค่อยประกาศได้ตามปกติ
 
 ## เพิ่ม/แก้สินค้า
 
