@@ -1,11 +1,11 @@
 # Wingacy — Shop
 
 Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy** (พอร์ตดีไซน์มาจาก wingacy.com)
-ตอนนี้เป็น **single-file HTML** — โครงสร้าง, CSS, JS อยู่ในไฟล์เดียว ไม่มี build step, ไม่มี dependency ภายนอก
+แยกไฟล์แล้ว (2026-07-13): `index.html` (markup) + `css/` ต่อเพจ + `js/` ต่อฟีเจอร์ + `assets/` — ยังไม่มี build step, ไม่มี dependency ภายนอก
 
 ## Workflow (ทำตามลำดับนี้ทุกครั้งที่จะแก้)
 
-1. **สำรวจก่อนแตะ** — grep/อ่านจุดที่เกี่ยวข้องเสมอ (token ที่ใช้ร่วม, component `.hoverable`, array `products`/`angles`, tilt engine) เข้าใจของเดิมก่อนแก้
+1. **สำรวจก่อนแตะ** — ดูตาราง "โครงสร้างไฟล์" ด้านล่างก่อน แล้ว**อ่านเฉพาะไฟล์ของเพจ/ฟีเจอร์ที่จะแก้** (css+js คู่กัน) ห้ามอ่านทุกไฟล์ไล่ทั้งโปรเจกต์ ถ้าไม่แน่ใจว่าอยู่ไฟล์ไหนให้ `grep -rn <selector/fn> css/ js/ index.html` ก่อน
 2. **อธิบายโครงสร้าง** — สรุปสั้นๆ ว่าโค้ดส่วนที่จะแก้ทำงานยังไง + เชื่อมกับอะไรบ้าง ก่อนลงมือ
 3. **วางแผนก่อนแก้** — บอกแผนเป็นขั้นๆ ว่าจะแตะไฟล์/ส่วนไหน ผลที่จะได้คืออะไร (งานใหญ่ให้ผู้ใช้ยืนยันแผนก่อน)
 4. **แก้ทีละส่วน** — edit เล็กๆ ทีละจุด ไม่ rewrite ทั้งไฟล์รวด ให้ diff ตรวจง่าย
@@ -13,16 +13,38 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 6. **สรุป diff** — จบงานสรุปว่าแก้อะไรไปบ้าง (ไฟล์/บรรทัด/เหตุผล) สั้นกระชับ
 7. **ช่วย comment** — ใส่ comment อธิบาย "ทำไม" (ไม่ใช่ "ทำอะไร") ตรงจุดที่ไม่ชัด เช่น ค่าคงที่ของ tilt, เหตุผลที่ tilt ไม่สน reduced-motion — ตาม density ของ comment เดิมในไฟล์
 
-## โครงสร้างไฟล์
+## โครงสร้างไฟล์ (แก้เพจไหน อ่านเฉพาะไฟล์นั้น)
 
-`index.html` เดียว แบ่งเป็น 3 ส่วนตามลำดับ:
-1. `<style>` — design tokens (`:root`) + component CSS ทั้งหมด
-2. markup — `.navbar` → views: home (`.hero` split + `.home-band`) / shop (`.catalog`) / product (`.pdp`) / cart → `.site-footer` → templates (`cardTpl`, `cartLineTpl`)
-3. `<script>` — view router, render การ์ดจาก array `products`, PDP/cart, tilt engine 2 ตัว
+**`index.html`** (~350 บรรทัด) — markup ล้วน: navbar → views (`#view-home/shop/pro/pri/watch/product/cart/checkout/login/register/account`) → footer → templates (`cardTpl`, `cartLineTpl`, `addressFormTpl`) → `<link>`/`<script src>`
+
+**`css/`** — โหลดตามลำดับใน `<head>` **ห้ามสลับลำดับ `<link>`** (cascade เดิมขึ้นกับลำดับนี้):
+| ไฟล์ | ดูแล |
+|---|---|
+| `base.css` | tokens `:root`, theme dark/light, layout, `.hoverable`, navbar |
+| `home.css` | hero, pro, home-band |
+| `shop.css` | catalog, collections, grid, card, swatch |
+| `pdp.css` | product detail, gallery, size chips |
+| `account.css` | auth, address card/form, order history |
+| `cart.css` | cart lines, summary, mini-cart |
+| `overrides.css` | footer, mobile `@media 860px`, reduced-motion, view crossfade |
+
+**`js/`** — classic script โหลดตามลำดับท้าย `<body>` **ห้ามสลับลำดับ** (top-level `const/let` แชร์ scope ข้ามไฟล์ ไม่ใช่ ES module ห้ามใส่ `type="module"`):
+| ไฟล์ | ดูแล |
+|---|---|
+| `router.js` | `show()`, data-view binding |
+| `auth.js` | `authFetch`, login/register, account, addresses, place order, orders |
+| `data.js` | `products` array |
+| `shop.js` | collections, `buildCard`, `renderShop` |
+| `pdp.js` | gallery, `openProduct`, Add to Cart |
+| `cart.js` | mini-cart, `cart` state, `renderCart` |
+| `checkout.js` | `renderCheckout`, `renderCheckoutAddresses` |
+| `tilt.js` | heroTilt + setupTilt |
+
+**`assets/`** — รูป/ไอคอนทั้งหมด (โลโก้, hero, รูปสินค้า) — **ห้าม Read ไฟล์ในนี้** (binary)
+
+**แก้ css/js แล้วต้อง bump `?v=N`** ของไฟล์นั้นใน `index.html` ทุกครั้ง (cache-bust)
 
 ทิศทางดีไซน์: **raw streetwear (drop culture)** — ดู `PRODUCT.md` ประกอบ; หน้ากว้างเต็มจอ (max 1440px) ไม่ใช่ mobile frame แล้ว
-
-> รูปทั้งหมดเป็น **base64 data URI** ฝังใน HTML (โลโก้, hero, swatch) — ตั้งใจให้ไฟล์ self-contained รันได้โดยเปิดไฟล์ตรงๆ ไม่ต้องมี asset ภายนอก
 
 ## Design tokens (`:root`)
 
@@ -80,6 +102,6 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 
 ## ห้ามทำ
 
-- อย่าเพิ่ม framework/bundler/dependency ภายนอก — คงความเป็น single-file self-contained
+- อย่าเพิ่ม framework/bundler/dependency ภายนอก — คง vanilla HTML/CSS/JS ไม่มี build step
 - อย่า hardcode สีที่ซ้ำกับ token
-- อย่าแตะ base64 asset โดยไม่จำเป็น (ไฟล์ใหญ่ diff อ่านยาก)
+- อย่า Read ไฟล์ใน `assets/` และอย่าฝัง base64 กลับเข้ามาในโค้ด — รูปใหม่ให้เพิ่มเป็นไฟล์ใน `assets/` เสมอ
