@@ -1,0 +1,18 @@
+const products = [
+  { id: "run-club-tee",    name: "Wingacy Run Club Tee 2025",    price: 2670,  category: "run", section: "new",        angle: 0, imageCount: 3,
+    photo: "assets/run-club-tee.webp",
+    photoHover: "assets/run-club-tee-hover.webp",
+    sizes: [{size:"M",inStock:true}, {size:"L",inStock:true}, {size:"XL",inStock:false}] },
+  { id: "half-zip-jacket", name: "Wingacy Logo Tee", price: 1750, category: "run", section: "new",        angle: 0, imageCount: 4,
+    photo: "assets/logo-tee.webp",
+    photoHover: "assets/logo-tee-hover.webp",
+    sizes: [{size:"M",inStock:false}, {size:"L",inStock:true}, {size:"XL",inStock:true}] },
+  { id: "arrow-tote",      name: "Arrow Tote",      price: 1410,  category: "gym", section: "new",        angle: 0, imageCount: 3,
+    sizes: [{size:"One Size",inStock:true}] },
+  { id: "split-shorts",    name: "Split Shorts",    price: 2280,  category: "run", section: "essentials", angle: 0, imageCount: 4,
+    sizes: [{size:"M",inStock:true}, {size:"L",inStock:true}, {size:"XL",inStock:true}] },
+  { id: "track-cap",       name: "Track Cap",       price: 1650,  category: "run", section: "essentials", angle: 0, imageCount: 3,
+    sizes: [{size:"One Size",inStock:false}] },
+  { id: "crew-socks",      name: "Crew Socks",      price: 940,  category: "gym", section: "essentials", angle: 0, imageCount: 3,
+    sizes: [{size:"One Size",inStock:true}] },
+];
