@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/base.css?v=6">
+<link rel="stylesheet" href="css/base.css?v=7">
 <link rel="stylesheet" href="css/home.css?v=6">
 <link rel="stylesheet" href="css/shop.css?v=1">
 <link rel="stylesheet" href="css/pdp.css?v=1">
@@ -29,7 +29,7 @@
         <button class="hoverable" type="button" id="accountBtn"><span>ACC</span></button>
         <button class="hoverable" type="button"><span>NOTI</span></button>
         <button class="hoverable bag" type="button" id="bagBtn" data-view="cart">
-          <span>CART</span>
+          <span>BAG</span>
           <span class="bag-count" id="bagCount">0</span>
         </button>
       </div>
@@ -117,7 +117,7 @@
         </div>
         <div class="size-chips" id="pdpSizes" role="group" aria-label="Size"></div>
         <p class="pdp-error" id="pdpError" hidden>Please select a size</p>
-        <button class="hoverable add-to-cart" id="pdpAdd" type="button"><span>Add to Cart</span></button>
+        <button class="hoverable add-to-cart" id="pdpAdd" type="button"><span>Add to Bag</span></button>
         <a class="hoverable view-back" href="#" data-view="shop">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
             <path d="M15 6l-6 6 6 6"/>
@@ -131,11 +131,11 @@
     <div class="view" id="view-cart" hidden>
     <section class="cart-view">
       <div class="section-head">
-        <h2>Cart</h2>
+        <h2>Bag</h2>
         <span class="count" id="cartItemCount">(0)</span>
       </div>
       <div id="cartList"><!-- line items injected via template --></div>
-      <p class="cart-empty" id="cartEmpty" hidden>Your cart is empty.</p>
+      <p class="cart-empty" id="cartEmpty" hidden>Your bag is empty.</p>
       <div class="cart-summary" id="cartSummary" hidden>
         <div class="cart-subtotal-row">
           <span>Subtotal</span>
@@ -263,7 +263,7 @@
         </div>
         <div class="cart-line mini-cart-line" id="miniCartLine"><!-- injected on add --></div>
         <div class="mini-cart-actions">
-          <button class="hoverable checkout" id="miniCartView" type="button"><span>View Cart</span></button>
+          <button class="hoverable checkout" id="miniCartView" type="button"><span>View Bag</span></button>
         </div>
       </aside>
     </div>
@@ -349,7 +349,7 @@
 <script src="js/auth.js?v=1"></script>
 <script src="js/data.js?v=1"></script>
 <script src="js/shop.js?v=1"></script>
-<script src="js/pdp.js?v=1"></script>
+<script src="js/pdp.js?v=2"></script>
 <script src="js/cart.js?v=1"></script>
 <script src="js/checkout.js?v=1"></script>
 <script src="js/tilt.js?v=1"></script>

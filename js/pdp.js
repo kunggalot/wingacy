@@ -114,5 +114,5 @@ pdpAdd.addEventListener('click', () => {
     setTimeout(() => { span.textContent = text; span.style.opacity = '1'; }, 120);
   };
   setLabel('Added');
-  setTimeout(() => setLabel('Add to Cart'), 900);
+  setTimeout(() => setLabel('Add to Bag'), 900);
 });

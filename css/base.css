@@ -181,7 +181,7 @@ body{
 .navbar-right{ grid-column: 3; grid-row: 1; justify-self: end; }
 .bag{
   position: relative;
-  margin-right: -7px; /* cancel trailing .hoverable padding so CART sits flush with the right gutter */
+  margin-right: -7px; /* cancel trailing .hoverable padding so BAG sits flush with the right gutter */
 }
 .hoverable:hover .bag-count,
 .hoverable:focus-visible .bag-count{
