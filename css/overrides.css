@@ -23,7 +23,7 @@
   display: block;
   width: 78px;
   height: 18px;
-  background-color: var(--muted);
+  background-color: var(--ink); /* match the @wingacy.c link text color, not --muted */
   -webkit-mask-image: var(--footer-mark-src);
   mask-image: var(--footer-mark-src);
   -webkit-mask-repeat: no-repeat;

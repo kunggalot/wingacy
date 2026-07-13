@@ -1,7 +1,7 @@
 /* --- hero: split poster — type carries the left, photo the right --- */
 .hero{
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: 1fr 1fr; /* even split so the divider lands on true center, matching the navbar's dead-center logo */
   border-bottom: 1px solid var(--line);
   /* single-screen home: hero fills the viewport minus the three fixed bands
      stacked with it — navbar(57) + WATCH-NOW band(88) + footer(73) — so the
@@ -34,7 +34,7 @@
   margin: 0;
 }
 .hero-title-row img{
-  height: clamp(1.5rem, 3.75vw, 3rem);
+  height: clamp(3rem, 7.5vw, 6rem);
   width: auto;
   display: block;
   filter: invert(var(--logo-invert, 1)); /* default = light theme (inverted white->black logo) */
@@ -44,17 +44,17 @@
 .hero-cta-row{
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-wrap: wrap;
   margin-top: 8px;
 }
 .hero-cta{
-  padding: 14px 30px;
-  font-size: 0.78rem;
+  padding: 10px 22px;
+  font-size: 0.68rem;
 }
 .hero-stock{
   font: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);

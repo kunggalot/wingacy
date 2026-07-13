@@ -1,13 +1,13 @@
 :root{
   color-scheme: light; /* light is the default theme — no OS dark auto-switch */
   --stage: #DCD8CC;
-  --surface: #FAF8F2;
-  --card: #F1EEE4;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
   --ink: #100F0A;
   --muted: #6E6A59;
   --line: rgba(16,15,10,0.14);
   --invert-bg: #100F0A;
-  --invert-fg: #FAF8F2;
+  --invert-fg: #FFFFFF;
   --shadow: 0 40px 80px -30px rgba(16,15,10,0.35);
   --radius: 2px;
   --gutter: clamp(16px, 3vw, 40px);
@@ -23,12 +23,12 @@
   --tint-source-a: #698AA5;
   --tint-source-b: #B5B4BA;
   /* placeholder plate (hero, swatch, PDP gallery, cart line): blue blended
-     into --card so it reads soft against the cream theme instead of full-strength */
+     into --card so it reads soft against the white theme instead of full-strength */
   --tint-a: color-mix(in srgb, var(--tint-source-a) 45%, var(--card));
   --tint-b: color-mix(in srgb, var(--tint-source-b) 45%, var(--card));
-  --footer-mark-src: url("assets/footer-mark.png");
+  --footer-mark-src: url("../assets/footer-mark.png");
 
-  --font-display: 800 1rem/1.1 "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: 500 1rem/1.1 "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-body: 500 0.95rem/1.5 "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: 500 0.72rem/1 ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
 }
@@ -51,13 +51,13 @@
 }
 :root[data-theme="light"]{
   --stage: #DCD8CC;
-  --surface: #FAF8F2;
-  --card: #F1EEE4;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
   --ink: #100F0A;
   --muted: #6E6A59;
   --line: rgba(16,15,10,0.14);
   --invert-bg: #100F0A;
-  --invert-fg: #FAF8F2;
+  --invert-fg: #FFFFFF;
   --shadow: 0 40px 80px -30px rgba(16,15,10,0.35);
   --accent-text: #3D5A6D;
 }
