@@ -1,0 +1,146 @@
+/* --- product detail: gallery left, sheet right on desktop; stacked on mobile --- */
+.pdp{ padding: 0; position: relative; }
+
+/* --- gallery: carousel — one image visible at a time, arrows + dots to browse, no scrolling --- */
+/* flex-center the gallery: max-height caps it below full width (via
+   aspect-ratio), and auto margins won't center a transferred width */
+.pdp-gallery{ position: relative; display: flex; justify-content: center; }
+#pdpGallery{
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: min(80vh, 820px); /* keep dots/CTA reachable */
+  overflow: hidden;
+  background: var(--line);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+#pdpGallery:active{ cursor: grabbing; }
+.pdp-gallery-item{
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--tint-a), var(--tint-b));
+  overflow: hidden;
+  /* frames are stacked; only the active one is opaque so swipe/dot crossfades
+     instead of hard-cutting. non-active stays in the DOM (no display:none) so
+     opacity can transition — pointer-events off so it can't catch drags */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+.pdp-gallery-item.is-active{ opacity: 1; pointer-events: auto; }
+.pdp-gallery-item img{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 58%;
+  opacity: 0.9;
+  transform: translate(-50%, -50%);
+  filter: invert(var(--logo-invert, 1)); /* default = light theme (inverted white->black logo) */
+}
+:root[data-theme="light"] .pdp-gallery-item img{ --logo-invert: 1; }
+:root[data-theme="dark"] .pdp-gallery-item img{ --logo-invert: 0; }
+/* real product photo, same treatment as .swatch.has-photo on the shop cards */
+.pdp-gallery-item.has-photo img{
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  object-fit: cover;
+  object-position: center 80%;
+  opacity: 1;
+  filter: none;
+}
+
+/* secondary action, sized to its content (not a full-width bar) so its
+   hover-invert never competes visually with the primary CTA above it */
+.view-back{
+  display: flex;
+  width: fit-content;
+  padding: 8px 14px;
+  margin: 16px auto 0;
+  text-decoration: none;
+}
+
+.pdp-dots{
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+}
+.pdp-dot{
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  cursor: pointer;
+}
+.pdp-dot[aria-current="true"]{ background: var(--ink); }
+
+/* --- sheet: name/color/size/cta pinned to the bottom of the screen frame,
+   stays put while the gallery above scrolls (Instagram-Shop style) --- */
+.pdp-sheet{
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: 16px var(--gutter) 40px;
+}
+@media (min-width: 900px){
+  /* Full-height chain so the gallery photo always fills the viewport
+     (footer-to-navbar), instead of stopping at its own aspect-ratio and
+     leaving dead space above the sticky footer. Only #view-product opts
+     into this — every other view keeps its normal content-sized height.
+     Guarded with :not([hidden]) so this ID rule can't out-specify the
+     global `.view[hidden]{display:none}` and leak the PDP onto other
+     views when it's supposed to be hidden. */
+  #view-product:not([hidden]){ display: flex; flex-direction: column; flex: 1; }
+  .pdp{
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    /* no border-bottom here — .pdp now touches .site-footer directly
+       (zero gap), and .site-footer already owns that boundary line via
+       its own border-top. See "Divider ownership" in CLAUDE.md. */
+  }
+  .pdp-gallery{ border-right: 1px solid var(--line); }
+  #pdpGallery{
+    /* base rule's aspect-ratio/max-height was for capping a
+       width-derived height; here height comes from the grid row instead,
+       so let it stretch to fill and drop the old cap entirely */
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+  }
+  .pdp-sheet{
+    border-top: none;
+    align-self: center;
+    padding: 40px clamp(28px, 4vw, 64px);
+  }
+}
+.pdp-header{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 14px; }
+.pdp-name{ margin: 0; font: var(--font-display); font-size: clamp(1.3rem, 2.4vw, 2rem); letter-spacing: -0.01em; text-transform: uppercase; }
+.pdp-price{ margin: 0; font: var(--font-mono); color: var(--muted); }
+.size-chips{ display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; margin-bottom: 12px; }
+.size-chip{ border: 1px solid var(--line); min-width: 44px; padding: 8px 12px; justify-content: center; }
+.size-chip[aria-pressed="true"]{ background: var(--ink); }
+.size-chip[aria-pressed="true"] span{ color: var(--invert-fg); }
+.size-chip:disabled span{ text-decoration: line-through; }
+.pdp-error{
+  margin: 0 0 10px;
+  font: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* errors/notes toggle via [hidden]; going display:none -> block replays this
+   animation, so they settle in instead of snapping (same trick as .view) */
+@keyframes msgIn{ from{ opacity: 0; transform: translateY(-2px); } to{ opacity: 1; transform: none; } }
+.pdp-error, .auth-error, .auth-note{ animation: msgIn 0.15s ease both; }

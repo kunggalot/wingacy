@@ -1,0 +1,72 @@
+.auth-view{ width: 100%; max-width: 420px; margin: 0 auto; padding: 40px var(--gutter) 60px; }
+/* .section-head carries its own --gutter side padding for the shop/cart
+   context; inside the already-guttered .auth-view that double-indents the
+   heading past the form fields. Drop only the horizontal padding here so
+   the title lines up with the inputs, keeping section-head's vertical rhythm. */
+.auth-view .section-head{ padding-left: 0; padding-right: 0; }
+.auth-field{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.auth-field label{
+  font: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-field input{
+  font: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.auth-field input:focus-visible{ outline: 2px solid var(--ink); outline-offset: 1px; }
+.auth-submit{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; margin-top: 4px; }
+.auth-switch{ margin-top: 16px; font: var(--font-mono); font-size: 0.66rem; color: var(--muted); text-align: center; }
+.auth-error{
+  margin: 0 0 10px;
+  font: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* neutral confirmation (e.g. post-register) — muted, not the accent used
+   for errors, so it doesn't read as a failure */
+.auth-note{
+  margin: 0 0 10px;
+  font: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.account-email{ font: var(--font-mono); font-size: 0.8rem; color: var(--muted); margin: 0 0 20px; word-break: break-all; }
+
+/* --- addresses (checkout + account) --- */
+.address-card{ border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.address-card[aria-pressed="true"]{ border-color: var(--ink); }
+.address-card-top{ display: flex; justify-content: space-between; gap: 10px; font: var(--font-display); font-size: 0.78rem; }
+.address-card-default{ font: var(--font-mono); font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.address-card-body{ font: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+.address-card-actions{ display: flex; gap: 8px; margin-top: 10px; }
+.address-card-actions .hoverable{ padding: 6px 10px; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.address-form{ border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.address-fields-intl{ margin-bottom: 4px; }
+.country-toggle{ margin-bottom: 12px; }
+.address-default-toggle{ display: flex; align-items: center; gap: 6px; font: var(--font-mono); font-size: 0.66rem; color: var(--muted); margin: 4px 0 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+.address-form-actions{ display: flex; gap: 8px; }
+.address-form-actions .auth-submit{ flex: 1; }
+
+/* --- order history --- */
+.order-row{ border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+.order-row-top{ display: flex; justify-content: space-between; font: var(--font-display); font-size: 0.78rem; cursor: pointer; }
+.order-row-meta{ font: var(--font-mono); font-size: 0.62rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+.order-row-detail{ margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.order-row-detail[hidden]{ display: none; }
+/* expand: order detail un-hides (display none->block replays this) and the
+   address form is freshly cloned in on open — both slide+fade down into place */
+@keyframes expandIn{ from{ opacity: 0; transform: translateY(-6px); } to{ opacity: 1; transform: none; } }
+.order-row-detail, .address-form{ animation: expandIn 0.2s ease both; }
+.add-to-cart{ border: 1px solid var(--ink); padding: 14px 16px; justify-content: center; width: 100%; }

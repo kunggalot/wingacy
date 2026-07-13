@@ -1,0 +1,174 @@
+/* --- hero: split poster — type carries the left, photo the right --- */
+.hero{
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  border-bottom: 1px solid var(--line);
+  /* single-screen home: hero fills the viewport minus the three fixed bands
+     stacked with it — navbar(57) + WATCH-NOW band(88) + footer(73) — so the
+     whole home view fits one screen with no scroll. Mobile (<=720px) resets
+     this to min-height:0 and stacks/scrolls normally. */
+  min-height: calc(100svh - 57px - 88px - 73px);
+}
+.hero-copy{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: clamp(32px, 5vw, 72px) var(--gutter);
+  border-right: 1px solid var(--line);
+}
+.hero-drop{
+  margin: 0;
+  font: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hero-drop b{
+  font-weight: inherit;
+  color: var(--accent-text);
+}
+.hero-title{
+  margin: 0;
+  font: var(--font-display);
+  font-size: clamp(3rem, 7.5vw, 6rem);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.hero-cta-row{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.hero-cta{
+  border: 1px solid var(--ink);
+  padding: 14px 30px;
+  font-size: 0.78rem;
+}
+.hero-cta::before{
+  inset: -1px; /* extend the wipe fill over the border itself — inset:0 (inherited from .hoverable) stops at the padding edge, leaving the border unfilled */
+}
+.hero-stock{
+  font: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hero-media{
+  position: relative;
+  overflow: hidden;
+}
+.hero-frame{
+  position: absolute;
+  inset: 0;
+  transform: perspective(800px) rotateX(0deg) rotateY(0deg);
+  transform-origin: center center;
+  will-change: transform;
+}
+.hero-frame img{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 100%; /* crop toward the garment/print, not the blank headroom above */
+}
+
+/* --- PRO: single-screen recruitment. Light surface, two-line copy + one
+   Apply button. No roster/products yet (team not formed). Sized so the copy
+   screen + footer both fit one viewport with no scroll:
+     height = 100svh - navbar(57px) - footer(73px). --- */
+.pro{
+  position: relative;
+  min-height: calc(100svh - 57px - 73px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding: clamp(32px, 5vw, 72px) var(--gutter);
+  background: var(--surface);
+}
+.pro-bg{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.pro-copy{
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.pro-kicker{
+  margin: 0 0 14px;
+  font: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pro-kicker b{ font-weight: inherit; color: var(--accent-text); }
+.pro-title{
+  margin: 0 0 30px;
+  font: var(--font-display);
+  font-size: clamp(2.6rem, 8vw, 6rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: var(--ink);
+  max-width: 12ch;
+}
+/* reuse .hoverable as-is (ink text, invert wipe) — bordered like .hero-cta */
+.pro-apply{
+  border: 1px solid var(--ink);
+  padding: 14px 30px;
+  font-size: 0.78rem;
+}
+.pro-apply::before{ inset: -1px; } /* fill over the border, same trick as .hero-cta */
+
+/* --- home: full-width strip linking to the shop --- */
+.home-band{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 26px var(--gutter);
+  /* no border-bottom — .home-band touches .site-footer directly (zero gap),
+     and .site-footer already owns that boundary line via its own border-top.
+     Two 1px borders on the same seam render as one thick/doubled line.
+     See "Divider ownership" in CLAUDE.md. */
+}
+.home-band .band-label{
+  font: var(--font-display);
+  font-size: clamp(1.2rem, 2.6vw, 2rem);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.home-band svg{ flex: none; }
+.band-icon{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  transition: border-color 0.24s ease;
+}
+/* the arrow's stroke already flips to --invert-fg on hover (.hoverable svg rule
+   above) — the ring around it has to flip in step or it goes invisible against
+   the inverted wipe background */
+.hoverable:hover .band-icon,
+.hoverable:focus-visible .band-icon{ border-color: var(--invert-fg); }

@@ -1,0 +1,213 @@
+:root{
+  color-scheme: light; /* light is the default theme — no OS dark auto-switch */
+  --stage: #DCD8CC;
+  --surface: #FAF8F2;
+  --card: #F1EEE4;
+  --ink: #100F0A;
+  --muted: #6E6A59;
+  --line: rgba(16,15,10,0.14);
+  --invert-bg: #100F0A;
+  --invert-fg: #FAF8F2;
+  --shadow: 0 40px 80px -30px rgba(16,15,10,0.35);
+  --radius: 2px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --gutter-tight: 10px;
+  /* accent: white→steel-blue gradient — the ONE loud element; solid blocks use
+     --accent (+black text, gradient stays ≥4.5:1 black-on-blue at its darkest
+     stop), small text on surface uses --accent-text (a flat pick off the blue
+     end, darkened/lightened per theme for ≥4.5:1 — gradient text is banned) */
+  --accent: linear-gradient(135deg, #FFFFFF, #5E8BA8);
+  --accent-text: #3D5A6D;
+  /* raw blue ingredient — not used directly as a background, only blended
+     below into --tint-a/b, the actual placeholder-plate gradient */
+  --tint-source-a: #698AA5;
+  --tint-source-b: #B5B4BA;
+  /* placeholder plate (hero, swatch, PDP gallery, cart line): blue blended
+     into --card so it reads soft against the cream theme instead of full-strength */
+  --tint-a: color-mix(in srgb, var(--tint-source-a) 45%, var(--card));
+  --tint-b: color-mix(in srgb, var(--tint-source-b) 45%, var(--card));
+  --footer-mark-src: url("assets/footer-mark.png");
+
+  --font-display: 800 1rem/1.1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: 500 0.95rem/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: 500 0.72rem/1 ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+/* light is the default regardless of OS preference (no
+   prefers-color-scheme:dark block) — dark only activates when a host
+   explicitly stamps data-theme="dark" below */
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --stage: #060605;
+  --surface: #0C0C0A;
+  --card: #131209;
+  --ink: #F3F0E8;
+  --muted: #8A8574;
+  --line: rgba(243,240,232,0.14);
+  --invert-bg: #F3F0E8;
+  --invert-fg: #0C0C0A;
+  --shadow: 0 40px 90px -30px rgba(0,0,0,0.7);
+  --accent-text: #96B4C6;
+}
+:root[data-theme="light"]{
+  --stage: #DCD8CC;
+  --surface: #FAF8F2;
+  --card: #F1EEE4;
+  --ink: #100F0A;
+  --muted: #6E6A59;
+  --line: rgba(16,15,10,0.14);
+  --invert-bg: #100F0A;
+  --invert-fg: #FAF8F2;
+  --shadow: 0 40px 80px -30px rgba(16,15,10,0.35);
+  --accent-text: #3D5A6D;
+}
+
+*{ box-sizing: border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background: var(--surface);
+  color: var(--ink);
+  font: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.stage{ width: 100%; }
+
+.screen{
+  position: relative;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-inline: 1px solid var(--line);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+/* flex:1 keeps the footer pinned to the bottom of the 100vh .screen
+   column (sticky footer) on every view. display:flex here just lets a
+   specific view opt into flex:1 itself to fill that space edge-to-edge
+   (see #view-product below) — views that don't opt in keep their normal
+   content-sized height, unaffected. */
+.views{ flex: 1; display: flex; flex-direction: column; position: relative; } /* anchor for the outgoing view during a crossfade */
+
+/* --- hoverable: tight invert rectangle wipes in from the left --- */
+.hoverable{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  color: var(--ink);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  isolation: isolate;
+}
+.hoverable::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--invert-bg);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.62,0.05,0.15,1);
+  z-index: -1;
+}
+.hoverable svg{ stroke: var(--ink); }
+.hoverable span, .hoverable svg{
+  position: relative;
+  /* opacity is here so the Add-to-Cart label can crossfade on swap (see pdpAdd);
+     harmless for every other button since none of them animate opacity */
+  transition: color 0.24s ease, stroke 0.24s ease, transform 0.28s cubic-bezier(0.62,0.05,0.15,1), opacity 0.12s ease;
+}
+.hoverable:hover::before,
+.hoverable:focus-visible::before{ transform: scaleX(1); }
+.hoverable:hover span,
+.hoverable:focus-visible span{ color: var(--invert-fg); transform: translateX(2px); }
+.hoverable:hover svg,
+.hoverable:focus-visible svg{ stroke: var(--invert-fg); }
+.hoverable:focus-visible{ outline: none; }
+.hoverable:focus-visible::before{ transform: scaleX(1); }
+
+/* --- nav --- */
+.navbar{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  /* 3-col grid pins the logo (auto center col) to dead-center: the two 1fr
+     side columns stay equal regardless of how wide the button/icon groups get */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 16px var(--gutter);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+.brand{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand img{
+  height: 18px;
+  width: auto;
+  display: block;
+  filter: invert(var(--logo-invert, 1)); /* default = light theme (inverted white->black logo) */
+}
+:root[data-theme="light"] .brand img{ --logo-invert: 1; }
+:root[data-theme="dark"] .brand img{ --logo-invert: 0; }
+
+.brand span{
+  font: var(--font-display);
+  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+}
+.navbar-links,
+.navbar-right{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* explicit column placement so DOM order doesn't matter: logo center (2),
+   buttons pinned far-left (1), icons pinned far-right (3) */
+/* pin all three to row 1 — default sparse auto-placement won't backtrack, so
+   without an explicit row the col-1 group (declared after brand in the DOM)
+   spills onto a second row */
+.brand{ grid-column: 2; grid-row: 1; }
+/* margin-left:-7px cancels the leading .hoverable padding so "PRO" sits flush
+   with the left gutter (same trick .bag uses with margin-right to hug the right) */
+.navbar-links{ grid-column: 1; grid-row: 1; justify-self: start; margin-left: -7px; }
+.navbar-right{ grid-column: 3; grid-row: 1; justify-self: end; }
+.bag{
+  position: relative;
+  margin-right: -7px; /* cancel trailing .hoverable padding so CART sits flush with the right gutter */
+}
+.hoverable:hover .bag-count,
+.hoverable:focus-visible .bag-count{
+  transform: none; /* don't inherit the nav-text hover nudge — keeps label/count gap fixed on hover */
+}
+.bag-count{
+  font: var(--font-mono);
+  font-size: 0.62rem;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+}
+/* pop the bag digit when an item lands in it — updateBagCount re-triggers this
+   only when the count goes up (not on remove/qty-down) */
+@keyframes bagPop{ 0%{ transform: scale(1); } 40%{ transform: scale(1.35); } 100%{ transform: scale(1); } }
+.bag-count.is-bumped{ animation: bagPop 0.32s ease; }
