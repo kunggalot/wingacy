@@ -28,8 +28,8 @@
   --tint-b: color-mix(in srgb, var(--tint-source-b) 45%, var(--card));
   --footer-mark-src: url("assets/footer-mark.png");
 
-  --font-display: 800 1rem/1.1 "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-body: 500 0.95rem/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: 800 1rem/1.1 "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: 500 0.95rem/1.5 "Montserrat", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: 500 0.72rem/1 ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
 }
 
