@@ -26,14 +26,14 @@
         </svg>
       </button>
       <div class="navbar-links" id="navbarLinks">
-        <button class="hoverable" type="button" data-view="pro"><span>PRO</span></button>
-        <button class="hoverable" type="button" data-view="pri"><span>PRI</span></button>
-        <button class="hoverable" type="button" data-view="shop"><span>SHOP</span></button>
+        <button class="hoverable" type="button" data-view="pro" disabled><span>PRO</span></button>
+        <button class="hoverable" type="button" data-view="pri" disabled><span>PRI</span></button>
+        <button class="hoverable" type="button" data-view="shop" disabled><span>SHOP</span></button>
       </div>
       <div class="navbar-right">
         <button class="hoverable" type="button" id="adminNavBtn" hidden><span>ADMIN</span></button>
-        <button class="hoverable" type="button" id="accountBtn"><span>ACC</span></button>
-        <button class="hoverable" type="button" id="notiBtn"><span>NOTI</span></button>
+        <button class="hoverable" type="button" id="accountBtn" disabled><span>ACC</span></button>
+        <button class="hoverable" type="button" id="notiBtn" disabled><span>NOTI</span></button>
         <button class="hoverable bag" type="button" id="bagBtn" data-view="cart">
           <span>BAG</span>
           <span class="bag-count" id="bagCount">0</span>
@@ -49,7 +49,7 @@
           <img src="assets/logo-wordmark.png" alt="Wingacy" />
         </h1>
         <div class="hero-cta-row">
-          <a class="hoverable hero-cta" href="#" data-view="shop"><span>Explore the shop</span></a>
+          <a class="hoverable hero-cta" href="#" data-view="shop" aria-disabled="true" tabindex="-1"><span>Explore the shop</span></a>
           <span class="hero-stock" id="heroStock">COMING SOON..</span>
         </div>
       </div>
@@ -59,7 +59,7 @@
       </div>
       </div>
     </section>
-    <a class="hoverable home-band" href="#" data-view="watch">
+    <a class="hoverable home-band" href="#" data-view="watch" aria-disabled="true" tabindex="-1">
       <span class="band-label">Watch now</span>
       <span class="band-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
