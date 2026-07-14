@@ -111,7 +111,10 @@
   .tab-btn.active{ background:var(--invert-bg); color:var(--invert-fg); }
   .tab-btn.active svg{ opacity:1; }
   .tab-btn.active .count{ background:rgba(255,255,255,0.18); border-color:transparent; color:var(--invert-fg); }
-  main{ padding:26px 34px 60px; max-width:980px; }
+  /* margin:0 auto centers this within the grid's 1fr column — without it,
+     max-width caps the block but leaves it flush-left, so wide viewports
+     show a big empty stage-colored gap on the right of the content. */
+  main{ padding:26px 34px 60px; max-width:980px; margin:0 auto; }
   header.top{
     display:flex; align-items:baseline; justify-content:space-between;
     padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:24px;
