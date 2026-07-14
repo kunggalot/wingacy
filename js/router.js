@@ -80,9 +80,15 @@ document.querySelectorAll('[data-view]').forEach((t) => {
 // .view except the active one carries the `hidden` attribute. This only
 // covers link-in: internal nav clicks still call show() directly and don't
 // write back to the hash, so the address bar isn't wired as two-way routing.
+// Falls back to Home on an empty/unmatched hash (not just "do nothing")
+// so native back/forward navigation — which never had an in-app history
+// entry to land on, since internal nav clicks don't touch the hash — always
+// resolves to a real view instead of leaving the screen blank.
 function showFromHash(){
   const name = location.hash.replace(/^#view-/, '').replace(/^#/, '');
   if (name && document.getElementById('view-' + name)) show(name);
+  else show('home');
 }
 window.addEventListener('hashchange', showFromHash);
+window.addEventListener('popstate', showFromHash);
 if (location.hash) showFromHash(); else show('home');
