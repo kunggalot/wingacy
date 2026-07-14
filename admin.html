@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<title>Wingacy — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Light-only, ported from the storefront's base.css tokens (warm paper +
+     steel-blue accent) so the admin reads as the same brand — no
+     prefers-color-scheme:dark block, the shop is light-default too. */
+  :root{
+    color-scheme: light;
+    --stage:#DCD8CC; --surface:#FFFFFF; --card:#FFFFFF;
+    --ink:#100F0A; --muted:#6E6A59; --line:rgba(16,15,10,0.14);
+    --invert-bg:#100F0A; --invert-fg:#FFFFFF;
+    /* accent = white→steel-blue gradient, solid blocks only (+black text);
+       small accent text uses the flat --accent-text (gradient text is banned) */
+    --accent:linear-gradient(135deg,#FFFFFF,#5E8BA8);
+    --accent-text:#3D5A6D; --accent-bg:#E7EEF2;
+    --danger:#B23B3B; --danger-bg:#F6E7E7;
+    --success:#3E7C55; --success-bg:#E8EFE7;
+    --warning:#9C6B2E; --warning-bg:#F3EBDD;
+    --sidebar:#FFFFFF;
+    --radius:2px;
+    --shadow:0 40px 80px -30px rgba(16,15,10,0.35);
+    --font-body:500 14.5px/1.5 "Montserrat","Noto Sans Thai","Helvetica Neue",Arial,sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--stage); color:var(--ink);
+    font:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* buttons echo the storefront's .hoverable language: uppercase, wide
+     tracking, thin line, hard 2px corners. .primary inverts to ink (the
+     shop's signature solid), not the accent gradient. */
+  button{
+    font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card);
+    color:var(--ink); padding:8px 15px; border-radius:var(--radius);
+    font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; font-weight:600;
+    transition:background .18s ease, color .18s ease, border-color .18s ease;
+  }
+  button:hover{ background:var(--invert-bg); color:var(--invert-fg); border-color:var(--invert-bg); }
+  button.primary{ background:var(--invert-bg); color:var(--invert-fg); border-color:var(--invert-bg); }
+  button.primary:hover{ opacity:0.86; }
+  button.ghost{ border-color:transparent; background:none; padding:8px 10px; }
+  button.ghost:hover{ background:var(--invert-bg); color:var(--invert-fg); border-color:transparent; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent-text); outline-offset:1px;
+  }
+  label{ display:block; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+  .field{ margin-bottom:18px; }
+  /* roomier inputs — larger hit area + calmer font so typing feels unhurried.
+     `input:not([type])` is deliberate: several edit-form fields (name, category,
+     section, photo…) render without a type attribute, so the old
+     [type="text"]-only rule left them un-stretched and looking cramped next to
+     the full-width number field — the exact "บีบ" this redesign fixes. */
+  input:not([type]), input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="url"], textarea{
+    width:100%; padding:11px 13px; border:1px solid var(--line); border-radius:var(--radius);
+    font:inherit; font-size:14px; background:var(--surface); color:var(--ink);
+  }
+  input:not([type="checkbox"]):hover:not(:focus), textarea:hover:not(:focus), select:hover{ border-color:rgba(16,15,10,0.28); }
+  textarea{ resize:vertical; min-height:84px; }
+  select{ font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--card); color:var(--ink); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{
+    text-align:left; font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase;
+    color:var(--muted); padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  .num{ font-variant-numeric:tabular-nums; }
+  .table-wrap{ overflow-x:auto; }
+  .msg{ font-size:13px; padding:9px 12px; border-radius:5px; margin-bottom:14px; }
+  .msg.error{ background:var(--danger-bg); color:var(--danger); }
+  .msg.ok{ background:var(--success-bg); color:var(--success); }
+  .empty{ color:var(--muted); font-size:13px; padding:8px 0; }
+  [hidden]{ display:none !important; }
+
+  /* ---------- shell / sidebar ---------- */
+  .shell{ display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
+  .rail{
+    background:var(--sidebar); border-right:1px solid var(--line);
+    padding:24px 16px; display:flex; flex-direction:column; gap:26px;
+  }
+  .brand{ padding:2px 8px; }
+  .brand .mark{ font-size:15px; font-weight:700; letter-spacing:0.14em; }
+  /* email replaces the old static "Admin" label — no uppercase/wide tracking
+     (illegible on an email) and wrapped/broken so a long address doesn't
+     overflow the 220px rail. */
+  .brand .sub{ font-size:10.5px; color:var(--muted); margin-top:4px; overflow-wrap:anywhere; }
+  nav.tabs{ display:flex; flex-direction:column; gap:2px; }
+  .tab-btn{
+    display:flex; align-items:center; gap:11px; width:100%;
+    padding:10px 11px; border-radius:var(--radius); border:none; background:none;
+    color:var(--ink); font:inherit; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; font-weight:600;
+    cursor:pointer; text-align:left;
+    transition:background .18s ease, color .18s ease;
+  }
+  .tab-btn svg{ width:16px; height:16px; flex:none; opacity:0.7; }
+  .tab-btn .count{
+    margin-left:auto; font-size:10.5px; letter-spacing:0; font-variant-numeric:tabular-nums;
+    color:var(--muted); background:var(--stage); border:1px solid var(--line);
+    border-radius:20px; padding:1px 7px; min-width:20px; text-align:center;
+  }
+  .tab-btn:hover{ background:var(--stage); }
+  .tab-btn.active{ background:var(--invert-bg); color:var(--invert-fg); }
+  .tab-btn.active svg{ opacity:1; }
+  .tab-btn.active .count{ background:rgba(255,255,255,0.18); border-color:transparent; color:var(--invert-fg); }
+  main{ padding:26px 34px 60px; max-width:980px; }
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding-bottom:16px; border-bottom:1px solid var(--line); margin-bottom:24px;
+  }
+  header.top .titles h1{ font-size:22px; margin:0; letter-spacing:0.01em; font-weight:700; }
+  header.top .titles .eyebrow{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.14em; margin-bottom:5px; }
+  header.top .who{ font-size:13px; color:var(--muted); display:flex; align-items:center; gap:12px; }
+
+  section.card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; margin-bottom:20px;
+  }
+  section.card .card-head{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap; }
+  .catalog-toolbar{ display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+  .catalog-toolbar .field{ margin-bottom:0; }
+  .catalog-toolbar input, .catalog-toolbar select{ min-width:180px; }
+  section.card h2{ font-size:13px; margin:0; letter-spacing:0.06em; text-transform:uppercase; font-weight:700; }
+  section.card .card-sub{ font-size:12px; color:var(--muted); margin-top:4px; }
+
+  .pill{
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+    letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 9px; border-radius:20px; white-space:nowrap;
+  }
+  .pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pill.pending{ background:var(--warning-bg); color:var(--warning); }
+  .pill.processing, .pill.shipped{ background:var(--accent-bg); color:var(--accent-text); }
+  .pill.completed{ background:var(--success-bg); color:var(--success); }
+  .pill.cancelled{ background:var(--danger-bg); color:var(--danger); }
+
+  select.status-select{ border:none; font-weight:600; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; border-radius:20px; padding:4px 10px 4px 8px; }
+  select.status-select.pending{ background:var(--warning-bg); color:var(--warning); }
+  select.status-select.processing, select.status-select.shipped{ background:var(--accent-bg); color:var(--accent-text); }
+  select.status-select.completed{ background:var(--success-bg); color:var(--success); }
+  select.status-select.cancelled{ background:var(--danger-bg); color:var(--danger); }
+
+  /* ---------- products ---------- */
+  .add-product{ margin-bottom:16px; border:1px solid var(--line); border-radius:var(--radius); padding:0 14px; }
+  .add-product summary{ padding:12px 0; cursor:pointer; font-weight:600; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; list-style:none; display:flex; align-items:center; gap:8px; }
+  .add-product summary::-webkit-details-marker{ display:none; }
+  .add-product summary::before{ content:"+"; font-size:15px; color:var(--accent-text); font-weight:700; }
+  .add-product[open] summary{ border-bottom:1px solid var(--line); }
+  .add-product[open] summary::before{ content:"–"; }
+  .add-product form{ padding:18px 0; display:grid; grid-template-columns:1fr 1fr; gap:2px 22px; }
+  .add-product form .field.span-2, .add-product form button{ grid-column:1 / -1; }
+
+  .product-group{ margin-bottom:16px; }
+  .product-group:last-child{ margin-bottom:0; }
+
+  .product-row{ border-bottom:1px solid var(--line); padding:13px 0; }
+  .product-row:last-child{ border-bottom:none; }
+  .product-row-main{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .product-thumb{
+    width:38px; height:46px; border-radius:var(--radius); background:var(--stage); border:1px solid var(--line);
+    flex:none; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--muted);
+    overflow:hidden;
+  }
+  .product-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .pinfo{ flex:1 1 180px; min-width:150px; }
+  .pname{ font-weight:600; font-size:13.5px; }
+  .pmeta{ font-size:11.5px; color:var(--muted); margin-top:1px; }
+  .badge-tag{
+    font-size:10px; letter-spacing:0.05em; text-transform:uppercase; padding:2px 7px;
+    border-radius:var(--radius); background:var(--accent-bg); color:var(--accent-text); font-weight:600;
+  }
+  .badge-tag.sale{ background:var(--danger-bg); color:var(--danger); }
+  .badge-tag.out-of-stock{ background:var(--warning-bg); color:var(--warning); }
+  /* Stock as clickable chips (not tiny checkboxes) — it's the field that
+     changes most often, so it leads the edit form and gets the biggest target. */
+  .size-toggles{ display:flex; gap:10px; flex-wrap:wrap; }
+  .size-toggle{
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    font-size:13.5px; font-weight:600; color:var(--muted);
+    padding:9px 14px; border:1px solid var(--line); border-radius:var(--radius);
+    background:var(--surface); user-select:none; transition:all .15s ease;
+  }
+  .size-toggle:hover{ border-color:rgba(16,15,10,0.28); }
+  .size-toggle input{ width:15px; height:15px; margin:0; accent-color:var(--accent-text); }
+  .size-toggle:has(input:checked){ border-color:var(--ink); color:var(--ink); background:var(--card); }
+  .row-actions{ display:flex; align-items:center; gap:4px; flex:none; }
+  /* reorder arrows: compact icon buttons that sit before Edit on each row */
+  .move-btn{
+    padding:6px; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius);
+    display:inline-flex; align-items:center; justify-content:center; color:var(--muted);
+  }
+  .move-btn svg{ width:14px; height:14px; }
+  .move-btn:hover:not(:disabled){ background:var(--invert-bg); color:var(--invert-fg); border-color:var(--invert-bg); }
+  .move-btn:disabled{ opacity:0.3; cursor:default; }
+
+  /* Edit form: a distinct inset panel, single priority column with a 2-up
+     grid only for the naturally-paired fields, generous spacing so nothing
+     feels cramped. Field order is set in the markup (Stock first). */
+  .product-edit-form{
+    display:grid; grid-template-columns:1fr 1fr; gap:2px 22px;
+    margin-top:14px; padding:20px; border:1px solid var(--line); border-radius:var(--radius);
+    background:var(--stage);
+  }
+  .product-edit-form .field.span-2{ grid-column:1 / -1; }
+  .product-edit-form button{ grid-column:1 / -1; margin-top:4px; }
+  .stock-block{
+    grid-column:1 / -1; margin-bottom:6px; padding-bottom:18px; border-bottom:1px solid var(--line);
+  }
+
+  /* photo upload widget: preview + a file-picker button (a <label> wrapping a
+     hidden <input type=file>). The URL it resolves to is kept in a sibling
+     hidden input so the product save still just sends `photo` as a string. */
+  .photo-upload{ display:flex; align-items:center; gap:14px; }
+  .photo-preview{
+    width:44px; height:54px; flex:none; overflow:hidden;
+    border:1px solid var(--line); border-radius:var(--radius); background:var(--surface);
+    display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:11px;
+  }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+  .photo-controls{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .upload-btn{
+    display:inline-flex; align-items:center; gap:7px; align-self:flex-start; cursor:pointer; margin:0;
+    font-size:11px; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; color:var(--ink);
+    padding:8px 13px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface);
+  }
+  .upload-btn:hover{ background:var(--invert-bg); color:var(--invert-fg); border-color:var(--invert-bg); }
+  .upload-btn svg{ width:14px; height:14px; }
+  .photo-name{ font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px; }
+
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  @media (max-width:760px){
+    .shell{ grid-template-columns:1fr; }
+    .rail{ flex-direction:row; align-items:center; padding:12px 16px; overflow-x:auto; }
+    .brand{ display:none; }
+    nav.tabs{ flex-direction:row; }
+    main{ padding:20px 16px 48px; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="dashView" hidden>
+    <div class="shell">
+      <aside class="rail">
+        <div class="brand">
+          <div class="mark">WINGACY</div>
+          <div class="sub" id="whoEmail"></div>
+        </div>
+        <nav class="tabs">
+          <button class="tab-btn active" data-tab="products" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 7l1.5-3h9L18 7M6 7h12l1 13H5L6 7Z" stroke-linejoin="round"/><path d="M9 10a3 3 0 0 0 6 0"/></svg>
+            Products
+            <span class="count" id="productCount">0</span>
+          </button>
+          <button class="tab-btn" data-tab="broadcast" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10v4h3l5 4V6L7 10H4Z" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>
+            Broadcast
+          </button>
+          <button class="tab-btn" data-tab="orders" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 4h14l-1 16H6L5 4Z" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+            Orders
+            <span class="count" id="orderCount">0</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="top">
+          <div class="titles">
+            <div class="eyebrow" id="pageEyebrow">Catalog</div>
+            <h1 id="pageTitle">Products</h1>
+          </div>
+          <div class="who">
+            <button id="backShop" type="button" hidden>← กลับหน้าแรก</button>
+          </div>
+        </header>
+
+        <!-- PRODUCTS -->
+        <section class="tab-panel active" id="panel-products">
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <h2>Catalog</h2>
+                <div class="card-sub" id="productSub"></div>
+              </div>
+              <div class="catalog-toolbar">
+                <div class="field">
+                  <label for="productSearch">Search</label>
+                  <input type="text" id="productSearch" placeholder="Name, category, section…" />
+                </div>
+                <div class="field">
+                  <label for="productSort">Sort within group</label>
+                  <select id="productSort">
+                    <option value="manual">Manual order (จัดลำดับเอง)</option>
+                    <option value="name">Name (A–Z)</option>
+                    <option value="price-asc">Price: low to high</option>
+                    <option value="price-desc">Price: high to low</option>
+                    <option value="stock">Out of stock first</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div id="productMsg"></div>
+
+            <details class="add-product">
+              <summary>Add product</summary>
+              <form id="addProductForm">
+                <div class="field span-2">
+                  <label for="npId">ID (slug — lowercase, hyphens only, can't change later)</label>
+                  <input type="text" id="npId" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="new-tee" required />
+                </div>
+                <div class="field span-2">
+                  <label for="npName">Name</label>
+                  <input type="text" id="npName" maxlength="120" required />
+                </div>
+                <div class="field span-2">
+                  <label for="npSizes">Sizes (comma-separated — all start in stock)</label>
+                  <input type="text" id="npSizes" placeholder="M, L, XL" required />
+                </div>
+                <div class="field">
+                  <label for="npPrice">Price (฿)</label>
+                  <input type="number" id="npPrice" min="1" step="1" required />
+                </div>
+                <div class="field">
+                  <label for="npBadge">Badge</label>
+                  <select id="npBadge">
+                    <option value="">None</option>
+                    <option value="sale">Sale</option>
+                    <option value="limited">Limited Stock</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="npCategory">Category</label>
+                  <input type="text" id="npCategory" list="categoryOptions" maxlength="40" required />
+                </div>
+                <div class="field">
+                  <label for="npSection">Section</label>
+                  <input type="text" id="npSection" maxlength="40" required />
+                </div>
+                <div class="field span-2">
+                  <label>Photo (optional)</label>
+                  <div class="photo-upload" data-photo-upload>
+                    <input type="hidden" id="npPhoto" data-photo-value value="" />
+                    <div class="photo-preview">—</div>
+                    <div class="photo-controls">
+                      <label class="upload-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V5m0 0L8 9m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" stroke-linecap="round"/></svg>
+                        เลือกรูป
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-photo-file hidden />
+                      </label>
+                      <span class="photo-name">ยังไม่มีรูป</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="field span-2">
+                  <label>Photo — hover angle (optional)</label>
+                  <div class="photo-upload" data-photo-upload>
+                    <input type="hidden" id="npPhotoHover" data-photo-value value="" />
+                    <div class="photo-preview">—</div>
+                    <div class="photo-controls">
+                      <label class="upload-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V5m0 0L8 9m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" stroke-linecap="round"/></svg>
+                        เลือกรูป
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-photo-file hidden />
+                      </label>
+                      <span class="photo-name">ยังไม่มีรูป</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="primary">Create product</button>
+              </form>
+            </details>
+            <datalist id="categoryOptions"></datalist>
+          </section>
+
+          <div id="productList"></div>
+        </section>
+
+        <!-- BROADCAST -->
+        <section class="tab-panel" id="panel-broadcast">
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <h2>Send broadcast</h2>
+                <div class="card-sub">Push a notification to every customer</div>
+              </div>
+            </div>
+            <div id="broadcastMsg"></div>
+            <form id="broadcastForm">
+              <div class="field">
+                <label for="bcTemplate">Template (เลือกแล้วแก้ไขได้ก่อนส่ง)</label>
+                <select id="bcTemplate"></select>
+              </div>
+              <div class="field">
+                <label for="bcTitle">Title</label>
+                <input type="text" id="bcTitle" maxlength="120" required />
+              </div>
+              <div class="field">
+                <label for="bcBody">Body</label>
+                <textarea id="bcBody" maxlength="2000" required></textarea>
+              </div>
+              <div class="field">
+                <label for="bcLinkType">Link</label>
+                <select id="bcLinkType">
+                  <option value="none">ไม่มีลิงก์</option>
+                  <option value="internal">หน้าในเว็บ</option>
+                  <option value="external">ลิงก์ภายนอก</option>
+                </select>
+              </div>
+              <div class="field" id="bcLinkInternalField" hidden>
+                <label for="bcLinkPage">เลือกหน้า</label>
+                <select id="bcLinkPage"></select>
+              </div>
+              <div class="field" id="bcLinkExternalField" hidden>
+                <label for="bcLinkExternal">URL (ต้องขึ้นต้นด้วย https://)</label>
+                <input type="url" id="bcLinkExternal" maxlength="500" placeholder="https://" />
+              </div>
+              <button type="submit" class="primary">Send to all customers</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <h2>Sent history</h2>
+              </div>
+            </div>
+            <div id="broadcastList"></div>
+          </section>
+        </section>
+
+        <!-- ORDERS -->
+        <section class="tab-panel" id="panel-orders">
+          <section class="card">
+            <div class="card-head">
+              <div>
+                <h2>Orders</h2>
+                <div class="card-sub" id="orderSub"></div>
+              </div>
+            </div>
+            <div id="orderMsg"></div>
+            <div id="orderList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+<!-- vendored supabase-js UMD (same file the storefront loads) — defines
+     window.supabase; served same-origin so a CDN outage can't break auth -->
+<script src="js/vendor/supabase.js?v=1"></script>
+<script>
+  /* Talks to Supabase directly (same anon key + RLS/RPC model as js/auth.js)
+     — the Express /admin API this dashboard used to call is retired. Every
+     admin write is double-gated: the RLS policy / RPC checks is_admin()
+     server-side, so this page being publicly reachable leaks nothing. */
+  const SUPABASE_URL = 'https://tvcrbfkrthriuxhioyya.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y3JiZmtydGhyaXV4aGlveXlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2Nzk0ODIsImV4cCI6MjA5OTI1NTQ4Mn0._YuUSqq20kQ5hWo9FvsXIDghR31BULPLW_1s52DwSCA';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const ORDER_STATUSES = ["pending", "processing", "shipped", "completed", "cancelled"];
+
+  const TAB_TITLES = {
+    products: { eyebrow: "Catalog", title: "Products" },
+    broadcast: { eyebrow: "Customers", title: "Broadcast" },
+    orders: { eyebrow: "Fulfillment", title: "Orders" },
+  };
+
+  // The only in-site destinations the storefront's hash router (js/router.js)
+  // actually resolves to something meaningful — kept to top-level views, not
+  // individual products, so every option here is guaranteed to land somewhere real.
+  const INTERNAL_PAGES = [
+    { value: "#view-home", label: "หน้าแรก" },
+    { value: "#view-shop", label: "หน้าร้าน" },
+    { value: "#view-account", label: "บัญชี / ประวัติคำสั่งซื้อ" },
+    { value: "#view-cart", label: "ตะกร้า" },
+  ];
+
+  // Starting points, not final copy — every field stays editable after pick.
+  const BROADCAST_TEMPLATES = [
+    { key: "custom", label: "กำหนดเอง", title: "", body: "", link: "" },
+    { key: "new_arrival", label: "สินค้าใหม่เข้า", title: "สินค้าใหม่เข้าแล้ว", body: "คอลเลกชันใหม่พร้อมขายแล้วที่หน้าร้าน", link: "#view-shop" },
+    { key: "restock", label: "สินค้ากลับมามีสต็อก", title: "ไซส์ที่รอกลับมามีของแล้ว", body: "สินค้าที่เคยหมดสต็อกกลับมาพร้อมขายอีกครั้ง", link: "#view-shop" },
+    { key: "promotion", label: "โปรโมชั่น", title: "โปรโมชั่นพิเศษ", body: "รายละเอียดโปรโมชั่น เงื่อนไข และระยะเวลา", link: "#view-shop" },
+    { key: "maintenance", label: "แจ้งปิดปรับปรุงระบบ", title: "แจ้งปิดปรับปรุงระบบชั่วคราว", body: "ระบบจะปิดปรับปรุงในช่วงเวลาที่ระบุ อาจมีผลต่อการสั่งซื้อ", link: "" },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const dashView = $("dashView");
+
+  // This page now lives in the storefront itself, so a relative photo path
+  // ("assets/…") resolves against the same origin naturally; only absolute
+  // URLs (Supabase Storage) needed passing through anyway.
+  function resolvePhoto(photo) {
+    return photo || "";
+  }
+
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  function showMsg(el, text, kind) {
+    el.innerHTML = text ? `<div class="msg ${kind}">${text}</div>` : "";
+  }
+
+  // snake_case rows -> the camelCase shape the render code below has always
+  // used (same mapping js/data.js does for the storefront)
+  function toProduct(p) {
+    return {
+      id: p.id, name: p.name, price: p.price, category: p.category,
+      section: p.section, angle: p.angle, imageCount: p.image_count,
+      photo: p.photo, photoHover: p.photo_hover, sizes: p.sizes,
+      badge: p.badge, active: p.active, position: p.position,
+    };
+  }
+
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      btn.classList.add("active");
+      const key = btn.dataset.tab;
+      $(`panel-${key}`).classList.add("active");
+      $("pageEyebrow").textContent = TAB_TITLES[key].eyebrow;
+      $("pageTitle").textContent = TAB_TITLES[key].title;
+    });
+  });
+
+  async function boot() {
+    // No login form lives here — the storefront is the single login surface.
+    // Anyone hitting admin.html without an admin session gets bounced there.
+    // The redirect is UX, not the security boundary: every query/RPC below
+    // re-checks is_admin() server-side regardless of what this shell shows.
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = "./"; return; }
+    const { data: isAdmin } = await sb.rpc("is_admin");
+    if (isAdmin !== true) { window.location.href = "./"; return; }
+
+    dashView.hidden = false;
+    $("whoEmail").textContent = session.user.email;
+    const back = $("backShop");
+    back.onclick = () => { window.location.href = "./"; };
+    back.hidden = false;
+    await Promise.all([loadProducts(), loadBroadcasts(), loadOrders()]);
+  }
+
+  $("bcTemplate").innerHTML = BROADCAST_TEMPLATES
+    .map((t) => `<option value="${t.key}">${t.label}</option>`)
+    .join("");
+  $("bcLinkPage").innerHTML = INTERNAL_PAGES
+    .map((p) => `<option value="${p.value}">${p.label}</option>`)
+    .join("");
+
+  function syncLinkFields() {
+    const mode = $("bcLinkType").value;
+    $("bcLinkInternalField").hidden = mode !== "internal";
+    $("bcLinkExternalField").hidden = mode !== "external";
+  }
+  $("bcLinkType").addEventListener("change", syncLinkFields);
+  syncLinkFields();
+
+  function currentLinkValue() {
+    const mode = $("bcLinkType").value;
+    if (mode === "internal") return $("bcLinkPage").value;
+    if (mode === "external") return $("bcLinkExternal").value.trim();
+    return "";
+  }
+
+  $("bcTemplate").addEventListener("change", () => {
+    const t = BROADCAST_TEMPLATES.find((x) => x.key === $("bcTemplate").value);
+    $("bcTitle").value = t.title;
+    $("bcBody").value = t.body;
+    if (t.link) {
+      $("bcLinkType").value = "internal";
+      $("bcLinkPage").value = t.link;
+    } else {
+      $("bcLinkType").value = "none";
+    }
+    $("bcLinkExternal").value = "";
+    syncLinkFields();
+  });
+
+  // --- photo upload widget (shared by the add form and every edit form) ---
+
+  function photoUploadHTML({ dataF, value, id }) {
+    const url = value ? resolvePhoto(value) : "";
+    const attrs = `${id ? `id="${id}"` : ""} ${dataF ? `data-f="${dataF}"` : ""}`.trim();
+    const name = value ? value.split("/").pop() : "ยังไม่มีรูป";
+    return `
+      <div class="photo-upload" data-photo-upload>
+        <input type="hidden" ${attrs} data-photo-value value="${value ?? ""}" />
+        <div class="photo-preview">${url ? `<img src="${url}" alt="" onerror="this.replaceWith('—')" />` : "—"}</div>
+        <div class="photo-controls">
+          <label class="upload-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15V5m0 0L8 9m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" stroke-linecap="round"/></svg>
+            เลือกรูป
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" data-photo-file hidden />
+          </label>
+          <span class="photo-name">${name}</span>
+        </div>
+      </div>`;
+  }
+
+  // Straight-to-Storage upload with the admin's own JWT (the is_admin-gated
+  // INSERT policy on the product-photos bucket replaces the old server-held
+  // service-role key). Object name mirrors the old server's slugify(): the
+  // product slug is a naming hint only, never trusted as the real id, and
+  // the random suffix means re-uploads never collide or overwrite.
+  const PHOTO_EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
+  async function uploadPhoto(file, productId) {
+    const ext = PHOTO_EXT[file.type];
+    if (!ext) throw new Error("รองรับเฉพาะ JPEG / PNG / WebP / AVIF");
+    if (file.size > 5 * 1024 * 1024) throw new Error("ไฟล์ใหญ่เกิน 5MB");
+    const slug = (productId || "photo").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "photo";
+    const suffix = [...crypto.getRandomValues(new Uint8Array(4))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const path = `products/${slug}-${suffix}.${ext}`; // same prefix the old server stored under
+    const { error } = await sb.storage.from("product-photos").upload(path, file, { contentType: file.type });
+    if (error) throw new Error(error.message || "Upload failed");
+    return sb.storage.from("product-photos").getPublicUrl(path).data.publicUrl;
+  }
+
+  function currentProductSlug(scope) {
+    const row = scope.closest(".product-row");
+    if (row) return row.dataset.id;
+    const npId = scope.querySelector("#npId");
+    return npId ? npId.value.trim() : "";
+  }
+
+  function wirePhotoUpload(scope) {
+    scope.querySelectorAll("[data-photo-file]").forEach((fileInput) => {
+      fileInput.addEventListener("change", async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const widget = fileInput.closest("[data-photo-upload]");
+        const hidden = widget.querySelector("[data-photo-value]");
+        const nameEl = widget.querySelector(".photo-name");
+        const preview = widget.querySelector(".photo-preview");
+        const prevName = nameEl.textContent;
+        nameEl.textContent = "กำลังอัปโหลด…";
+        showMsg($("productMsg"), "", "");
+        try {
+          const url = await uploadPhoto(file, currentProductSlug(scope));
+          hidden.value = url;
+          nameEl.textContent = url.split("/").pop();
+          preview.innerHTML = `<img src="${url}" alt="" />`;
+        } catch (err) {
+          nameEl.textContent = prevName;
+          showMsg($("productMsg"), err.message, "error");
+        } finally {
+          fileInput.value = "";
+        }
+      });
+    });
+  }
+
+  function resetPhotoWidgets(scope) {
+    scope.querySelectorAll("[data-photo-upload]").forEach((widget) => {
+      widget.querySelector("[data-photo-value]").value = "";
+      widget.querySelector(".photo-preview").textContent = "—";
+      widget.querySelector(".photo-name").textContent = "ยังไม่มีรูป";
+    });
+  }
+
+  wirePhotoUpload($("addProductForm"));
+
+  let productRows = [];
+
+  function isSoldOut(p) {
+    return p.sizes.every((s) => !s.inStock);
+  }
+
+  function compareProducts(a, b, mode) {
+    if (mode === "manual") return 0;
+    if (mode === "price-asc") return a.price - b.price || a.name.localeCompare(b.name);
+    if (mode === "price-desc") return b.price - a.price || a.name.localeCompare(b.name);
+    if (mode === "stock") {
+      const diff = Number(isSoldOut(b)) - Number(isSoldOut(a));
+      return diff || a.name.localeCompare(b.name);
+    }
+    return a.name.localeCompare(b.name);
+  }
+
+  function matchesSearch(p, query) {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return p.name.toLowerCase().includes(q)
+      || p.category.toLowerCase().includes(q)
+      || p.section.toLowerCase().includes(q);
+  }
+
+  async function loadProducts() {
+    const list = $("productList");
+    // RLS: the products select policy shows an admin every row (active or
+    // not), the public only active ones — same data the old /products gave.
+    const { data, error } = await sb
+      .from("products")
+      .select("*")
+      .order("position")
+      .order("created_at");
+    if (error) {
+      list.innerHTML = `<div class="msg error">${error.message}</div>`;
+      return;
+    }
+    productRows = data.map(toProduct);
+    const categories = [...new Set(productRows.map((p) => p.category))];
+    $("categoryOptions").innerHTML = categories.map((c) => `<option value="${c}"></option>`).join("");
+    $("productCount").textContent = productRows.length;
+    $("productSub").textContent = `${productRows.length} product${productRows.length === 1 ? "" : "s"} across ${categories.length} categor${categories.length === 1 ? "y" : "ies"}`;
+    renderProductList();
+  }
+
+  function renderProductList() {
+    const list = $("productList");
+    if (productRows.length === 0) {
+      list.innerHTML = `<p class="empty">ยังไม่มีสินค้า</p>`;
+      return;
+    }
+    const sortMode = $("productSort").value;
+    const query = $("productSearch").value.trim();
+    const filteredRows = productRows.filter((p) => matchesSearch(p, query));
+
+    if (filteredRows.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty";
+      empty.textContent = `ไม่พบสินค้าที่ตรงกับคำค้นหา "${query}"`;
+      list.replaceChildren(empty);
+      return;
+    }
+
+    const badgeOption = (value, label, current) =>
+      `<option value="${value}" ${current === value ? "selected" : ""}>${label}</option>`;
+
+    const canReorder = sortMode === "manual" && !query;
+    const chevron = (dir) => dir === "up"
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    const renderRow = (p, idx, arr) => `
+      <div class="product-row" data-id="${p.id}" data-name="${p.name}">
+        <div class="product-row-main">
+          <div class="product-thumb">${p.photo ? `<img src="${resolvePhoto(p.photo)}" alt="" onerror="this.replaceWith('—')" />` : "—"}</div>
+          <div class="pinfo">
+            <span class="pname">${p.name} ${p.badge ? `<span class="badge-tag ${p.badge}">${p.badge === "sale" ? "Sale" : "Limited"}</span>` : ""} ${isSoldOut(p) ? `<span class="badge-tag out-of-stock">Out of stock</span>` : ""}</span>
+            <div class="pmeta">${p.section} · <span class="num">฿${p.price}</span></div>
+          </div>
+          <div class="row-actions">
+            ${canReorder ? `
+              <button type="button" class="move-btn" data-move="up" ${idx === 0 ? "disabled" : ""} aria-label="ย้ายขึ้น">${chevron("up")}</button>
+              <button type="button" class="move-btn" data-move="down" ${idx === arr.length - 1 ? "disabled" : ""} aria-label="ย้ายลง">${chevron("down")}</button>
+            ` : ""}
+            <button type="button" class="ghost" data-toggle-edit>Edit</button>
+          </div>
+        </div>
+        <form class="product-edit-form" data-edit-form hidden>
+          <div class="stock-block">
+            <label>Stock — ไซส์ที่มีของ</label>
+            <div class="size-toggles">
+              ${p.sizes.map((s) => `
+                <label class="size-toggle">
+                  <input type="checkbox" data-size="${s.size}" ${s.inStock ? "checked" : ""} />
+                  ${s.size}
+                </label>
+              `).join("")}
+            </div>
+          </div>
+          <div class="field span-2"><label>Name</label><input data-f="name" value="${p.name}" maxlength="120" required /></div>
+          <div class="field"><label>Price (฿)</label><input type="number" data-f="price" value="${p.price}" min="1" step="1" required /></div>
+          <div class="field">
+            <label>Badge</label>
+            <select data-f="badge">
+              <option value="" ${!p.badge ? "selected" : ""}>None</option>
+              ${badgeOption("sale", "Sale", p.badge)}
+              ${badgeOption("limited", "Limited Stock", p.badge)}
+            </select>
+          </div>
+          <div class="field"><label>Category</label><input data-f="category" value="${p.category}" list="categoryOptions" maxlength="40" required /></div>
+          <div class="field"><label>Section</label><input data-f="section" value="${p.section}" maxlength="40" required /></div>
+          <div class="field span-2"><label>Photo</label>${photoUploadHTML({ dataF: "photo", value: p.photo })}</div>
+          <div class="field span-2"><label>Photo — hover angle</label>${photoUploadHTML({ dataF: "photoHover", value: p.photoHover })}</div>
+          <button type="submit" class="primary">Save changes</button>
+        </form>
+      </div>
+    `;
+
+    // Group by category only — one flat list per category in position order,
+    // so the dashboard's card order is the storefront's card order, literally.
+    const byCategory = new Map();
+    for (const p of filteredRows) {
+      if (!byCategory.has(p.category)) byCategory.set(p.category, []);
+      byCategory.get(p.category).push(p);
+    }
+    const sortedCategories = [...byCategory.keys()];
+
+    list.innerHTML = sortedCategories.map((cat, catIdx, catArr) => {
+      const items = byCategory.get(cat);
+      const body = [...items].sort((a, b) => compareProducts(a, b, sortMode)).map(renderRow).join("");
+
+      return `
+        <section class="card product-group" data-category="${cat}">
+          <div class="card-head">
+            <div>
+              <h2>${cat}</h2>
+              <div class="card-sub">${items.length} product${items.length === 1 ? "" : "s"}</div>
+            </div>
+            ${canReorder ? `
+              <div class="row-actions">
+                <button type="button" class="move-btn" data-category-move="up" ${catIdx === 0 ? "disabled" : ""} aria-label="ย้ายหมวดขึ้น">${chevron("up")}</button>
+                <button type="button" class="move-btn" data-category-move="down" ${catIdx === catArr.length - 1 ? "disabled" : ""} aria-label="ย้ายหมวดลง">${chevron("down")}</button>
+              </div>
+            ` : ""}
+          </div>
+          ${body}
+        </section>
+      `;
+    }).join("");
+
+    list.querySelectorAll("[data-toggle-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const form = btn.closest(".product-row").querySelector("[data-edit-form]");
+        form.hidden = !form.hidden;
+      });
+    });
+
+    list.querySelectorAll("[data-move]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.closest(".product-row").dataset.id;
+        const direction = btn.dataset.move;
+        showMsg($("productMsg"), "", "");
+        btn.disabled = true;
+        const { data: result, error } = await sb.rpc("move_product", { p_id: id, p_direction: direction });
+        if (error) {
+          showMsg($("productMsg"), error.message, "error");
+          btn.disabled = false;
+          return;
+        }
+        if (result.moved) await loadProducts();
+        else btn.disabled = false;
+      });
+    });
+
+    list.querySelectorAll("[data-category-move]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const category = btn.closest(".product-group").dataset.category;
+        const direction = btn.dataset.categoryMove;
+        showMsg($("productMsg"), "", "");
+        btn.disabled = true;
+        const { data: result, error } = await sb.rpc("move_category", { p_category: category, p_direction: direction });
+        if (error) {
+          showMsg($("productMsg"), error.message, "error");
+          btn.disabled = false;
+          return;
+        }
+        if (result.moved) await loadProducts();
+        else btn.disabled = false;
+      });
+    });
+
+    list.querySelectorAll("[data-edit-form]").forEach((form) => {
+      wirePhotoUpload(form);
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = form.closest(".product-row").dataset.id;
+        const get = (f) => form.querySelector(`[data-f="${f}"]`).value;
+        const sizes = [...form.querySelectorAll("input[data-size]")].map((el) => ({
+          size: el.dataset.size,
+          inStock: el.checked,
+        }));
+        showMsg($("productMsg"), "", "");
+        // Restock detection (was server-side): a size flipping false->true
+        // means something came back in stock — suggest a broadcast, never send.
+        const before = productRows.find((p) => p.id === id);
+        const restocked = before && sizes.some((s) => {
+          const prev = before.sizes.find((b) => b.size === s.size);
+          return prev && !prev.inStock && s.inStock;
+        });
+        const patch = {
+          name: get("name"),
+          price: Number(get("price")),
+          category: get("category"),
+          section: get("section"),
+          sizes,
+          badge: get("badge") || null,
+        };
+        if (get("photo")) patch.photo = get("photo");
+        if (get("photoHover")) patch.photo_hover = get("photoHover");
+        patch.image_count = (patch.photo || before.photo) ? ((patch.photo_hover || before.photoHover) ? 2 : 1) : 0;
+        const { error } = await sb.from("products").update(patch).eq("id", id);
+        if (error) {
+          showMsg($("productMsg"), error.message, "error");
+          return;
+        }
+        if (restocked) {
+          showMsg($("productMsg"), `บันทึก ${get("name")} แล้ว — กลับมามีสต็อก ร่างข้อความแจ้งเตือนให้ด้านล่างแล้ว ตรวจสอบแล้วกด Send`, "ok");
+          prefillRestockBroadcast(get("name"));
+        } else {
+          showMsg($("productMsg"), `บันทึก ${get("name")} แล้ว`, "ok");
+        }
+        await loadProducts();
+      });
+    });
+  }
+
+  $("productSort").addEventListener("change", renderProductList);
+  $("productSearch").addEventListener("input", renderProductList);
+
+  // Suggests, doesn't send — a stock save never fires a notification by
+  // itself; an admin still has to review and click "Send to all customers".
+  function prefillRestockBroadcast(productName) {
+    $("bcTemplate").value = "custom";
+    $("bcTitle").value = `${productName} กลับมามีสต็อกแล้ว`;
+    $("bcBody").value = `${productName} ที่เคยหมดสต็อกกลับมาพร้อมขายอีกครั้ง`;
+    $("bcLinkType").value = "internal";
+    $("bcLinkPage").value = "#view-shop";
+    syncLinkFields();
+    document.querySelector('.tab-btn[data-tab="broadcast"]').click();
+  }
+
+  $("addProductForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showMsg($("productMsg"), "", "");
+    const sizes = $("npSizes").value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((size) => ({ size, inStock: true }));
+    if (sizes.length === 0) {
+      showMsg($("productMsg"), "ใส่อย่างน้อย 1 ไซส์ เช่น M,L,XL", "error");
+      return;
+    }
+    const id = $("npId").value.trim();
+    if (productRows.some((p) => p.id === id)) {
+      showMsg($("productMsg"), `มีสินค้า id "${id}" อยู่แล้ว`, "error");
+      return;
+    }
+    const photo = $("npPhoto").value || null;
+    const photoHover = $("npPhotoHover").value || null;
+    const row = {
+      id,
+      name: $("npName").value,
+      price: Number($("npPrice").value),
+      category: $("npCategory").value,
+      section: $("npSection").value,
+      sizes,
+      photo,
+      photo_hover: photoHover,
+      badge: $("npBadge").value || null,
+      image_count: photo ? (photoHover ? 2 : 1) : 0,
+      // append to the end of the manual ordering, same max+10 rule the old
+      // server used (productRows holds the full catalog, so max is accurate)
+      position: Math.max(0, ...productRows.map((p) => p.position || 0)) + 10,
+    };
+    const { error } = await sb.from("products").insert(row);
+    if (error) {
+      showMsg($("productMsg"), error.message, "error");
+      return;
+    }
+    showMsg($("productMsg"), `เพิ่มสินค้า "${$("npName").value}" แล้ว`, "ok");
+    $("addProductForm").reset();
+    resetPhotoWidgets($("addProductForm"));
+    $("addProductForm").closest("details").open = false;
+    await loadProducts();
+  });
+
+  async function loadBroadcasts() {
+    const list = $("broadcastList");
+    // list_broadcasts() returns per-broadcast read/recipient aggregates only —
+    // the admin never gets SELECT over individual customers' notification rows
+    const { data: rows, error } = await sb.rpc("list_broadcasts");
+    if (error) {
+      list.innerHTML = `<div class="msg error">${error.message}</div>`;
+      return;
+    }
+    if (rows.length === 0) {
+      list.innerHTML = `<p class="empty">ยังไม่เคยส่ง broadcast</p>`;
+      return;
+    }
+    list.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Sent</th><th>Read</th></tr></thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr>
+                <td>${r.title}</td>
+                <td>${fmtDate(r.created_at)}</td>
+                <td class="num">${r.read_count} / ${r.recipient_count}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  $("broadcastForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showMsg($("broadcastMsg"), "", "");
+
+    if ($("bcLinkType").value === "external") {
+      const url = $("bcLinkExternal").value.trim();
+      if (!/^https?:\/\/.+/.test(url)) {
+        showMsg($("broadcastMsg"), "ลิงก์ภายนอกต้องขึ้นต้นด้วย http:// หรือ https://", "error");
+        return;
+      }
+    }
+    const link = currentLinkValue();
+
+    const { data: created, error } = await sb.rpc("create_broadcast", {
+      p_title: $("bcTitle").value,
+      p_body: $("bcBody").value,
+      p_link: link || null,
+    });
+    if (error) {
+      showMsg($("broadcastMsg"), error.message, "error");
+      return;
+    }
+    showMsg($("broadcastMsg"), `ส่งแล้วถึงลูกค้า ${created.recipient_count} คน`, "ok");
+    $("broadcastForm").reset();
+    syncLinkFields();
+    await loadBroadcasts();
+  });
+
+  async function loadOrders() {
+    const list = $("orderList");
+    // orders' FK points at auth.users (not profiles), so PostgREST can't
+    // embed the email — join client-side from the admin-readable profiles
+    const [ordersRes, profilesRes] = await Promise.all([
+      sb.from("orders").select("id, order_number, user_id, subtotal, status, created_at")
+        .order("created_at", { ascending: false }).limit(100),
+      sb.from("profiles").select("id, email"),
+    ]);
+    if (ordersRes.error) {
+      list.innerHTML = `<div class="msg error">${ordersRes.error.message}</div>`;
+      return;
+    }
+    const emailById = new Map((profilesRes.data || []).map((p) => [p.id, p.email]));
+    const rows = ordersRes.data.map((r) => ({ ...r, customer_email: emailById.get(r.user_id) || "—" }));
+
+    const pendingCount = rows.filter((r) => r.status === "pending").length;
+    $("orderCount").textContent = pendingCount;
+    $("orderSub").textContent = pendingCount > 0
+      ? `${pendingCount} need attention`
+      : `${rows.length} total, all caught up`;
+
+    if (rows.length === 0) {
+      list.innerHTML = `<p class="empty">ยังไม่มีคำสั่งซื้อ</p>`;
+      return;
+    }
+    list.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Order</th><th>Customer</th><th>Subtotal</th><th>Placed</th><th>Status</th></tr></thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr data-id="${r.id}">
+                <td>#${r.order_number}</td>
+                <td>${r.customer_email}</td>
+                <td class="num">฿${r.subtotal}</td>
+                <td>${fmtDate(r.created_at)}</td>
+                <td>
+                  <select class="status-select ${r.status}" data-order-status>
+                    ${ORDER_STATUSES.map((s) => `<option value="${s}" ${s === r.status ? "selected" : ""}>${s}</option>`).join("")}
+                  </select>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>`;
+
+    list.querySelectorAll("select[data-order-status]").forEach((select) => {
+      select.addEventListener("change", async () => {
+        const id = select.closest("tr").dataset.id;
+        const status = select.value;
+        showMsg($("orderMsg"), "", "");
+        // transition_order_status updates the row and queues the customer's
+        // Thai notification in one transaction, same as the old endpoint
+        const { error } = await sb.rpc("transition_order_status", { p_order_id: id, p_status: status });
+        if (error) {
+          showMsg($("orderMsg"), error.message, "error");
+          await loadOrders();
+          return;
+        }
+        ORDER_STATUSES.forEach((s) => select.classList.remove(s));
+        select.classList.add(status);
+        showMsg($("orderMsg"), `อัปเดตสถานะ order #${id.slice(0, 8)} แล้ว — ลูกค้าได้รับ notification`, "ok");
+        await loadOrders();
+      });
+    });
+  }
+
+  boot();
+</script>
+</body>
+</html>
