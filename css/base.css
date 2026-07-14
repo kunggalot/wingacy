@@ -189,6 +189,11 @@ body{
    with the left gutter (same trick .bag uses with margin-right to hug the right) */
 .navbar-links{ grid-column: 1; grid-row: 1; justify-self: start; margin-left: -7px; }
 .navbar-right{ grid-column: 3; grid-row: 1; justify-self: end; }
+/* shares .navbar-links's grid cell (only one of the two ever has visible
+   content at a time, mobile vs desktop) so it doesn't move when
+   .navbar-links flips to position:absolute for the open dropdown — see
+   overrides.css mobile nav */
+.nav-toggle{ grid-column: 1; grid-row: 1; justify-self: start; margin-left: -7px; }
 .bag{
   position: relative;
   margin-right: -7px; /* cancel trailing .hoverable padding so BAG sits flush with the right gutter */

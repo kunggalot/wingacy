@@ -3,6 +3,12 @@
 (function heroTilt(){
   const wrap = document.getElementById('heroFrame');
   if (!wrap) return;
+  // touch devices have no cursor to follow, and iOS Safari synthesizes a
+  // single mousemove at the tap point after a touch — with no further move
+  // to lerp back to center, that stray event left the photo stuck tilted
+  // (visible as a gap at one edge, since .hero-media has no fill behind the
+  // rotated frame). Real-mouse-only devices don't hit this at all.
+  if (!window.matchMedia('(pointer: fine)').matches) return;
 
   const MAX = 5;        // MAX_TILT_DEG
   const EASE = 0.1;     // TILT_EASE

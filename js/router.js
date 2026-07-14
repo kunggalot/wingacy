@@ -42,6 +42,26 @@ function show(name){
 
   window.scrollTo(0, 0);
 }
+// mobile nav-links dropdown (hamburger toggle) — desktop hides #navToggleBtn
+// via CSS so this listener is harmless/unused there
+const navToggleBtn = document.getElementById('navToggleBtn');
+const navbarLinks = document.getElementById('navbarLinks');
+function closeNavDrawer(){
+  navbarLinks.classList.remove('nav-open');
+  navToggleBtn.setAttribute('aria-expanded', 'false');
+}
+navToggleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = navbarLinks.classList.toggle('nav-open');
+  navToggleBtn.setAttribute('aria-expanded', String(open));
+});
+document.addEventListener('click', (e) => {
+  if (navbarLinks.classList.contains('nav-open') && !navbarLinks.contains(e.target)) closeNavDrawer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeNavDrawer();
+});
+
 document.querySelectorAll('[data-view]').forEach((t) => {
   t.addEventListener('click', (e) => {
     e.preventDefault();
@@ -50,6 +70,7 @@ document.querySelectorAll('[data-view]').forEach((t) => {
     // this explicit guard to actually stop navigation.
     if (t.disabled || t.getAttribute('aria-disabled') === 'true') return;
     show(t.dataset.view);
+    closeNavDrawer();
   });
 });
 

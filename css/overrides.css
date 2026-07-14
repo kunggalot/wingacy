@@ -42,6 +42,50 @@
   .screen{ border-inline: none; }
 }
 
+/* --- mobile nav: PRO/PRI/SHOP collapse behind a hamburger into a small
+   anchored popover (not a full-width banner — picked over that after review,
+   see wingacy-nav-options artifact). .nav-toggle is a sibling of
+   .navbar-links (not a child — it used to live inside, but then it got
+   dragged along when .navbar-links flipped to position:absolute, making the
+   icon visibly jump down on open) sharing the same grid cell (base.css), so
+   it stays put regardless of .navbar-links's open/closed state.
+   .navbar-links itself becomes the popover (no extra wrapper element
+   needed) when opened — it's already the grid item pinned to the navbar's
+   left column, so position:absolute + left:0 anchors it flush under the
+   hamburger, under the sticky .navbar. ADMIN and NOTI are dropped from the
+   bar too: ADMIN's dashboard is a separate backend not built for mobile,
+   and NOTI has no functionality wired yet. */
+@media (max-width: 860px){
+  .nav-toggle{ display: inline-flex; }
+  .navbar-links > button{ display: none; }
+  .navbar-links.nav-open{
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 152px;
+    margin-left: 0; /* cancel the desktop -7px flush-left trick */
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow); /* same floating-panel treatment as the mini-cart */
+    padding: 6px;
+    z-index: 4;
+  }
+  .navbar-links.nav-open > button{
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 8px 10px;
+  }
+  #adminNavBtn,
+  #notiBtn{ display: none; }
+}
+@media (min-width: 861px){
+  .nav-toggle{ display: none; }
+}
+
 @media (prefers-reduced-motion: reduce){
   .hoverable::before{ transition: opacity 0.12s ease; transform: scaleX(1); opacity: 0; }
   .hoverable:hover::before,
