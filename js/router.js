@@ -2,6 +2,24 @@
    Brand logo -> Home (hero only); each tab renders its own layout. --- */
 /* --- view router: exposed as a plain top-level fn (not an IIFE) so the
    PDP/cart code below can navigate views too, not just nav-link clicks. --- */
+
+// Pre-launch pages/entry points are `disabled`/`aria-disabled` in the
+// markup itself (index.html), so production always ships them off without
+// anyone having to remember to flip them back before a push. On localhost
+// only, auto-enable them for testing — same location.hostname check auth.js
+// already uses for AUTH_API. placeOrderBtn is NOT in this list: it's not a
+// pre-launch placeholder, checkout.js drives its disabled state from real
+// cart/address conditions and must keep doing so even on localhost.
+if (location.hostname === 'localhost') {
+  document.querySelectorAll(
+    '[data-view="pro"], [data-view="pri"], [data-view="shop"], #accountBtn, #notiBtn'
+  ).forEach((el) => { el.disabled = false; });
+  document.querySelectorAll('.hero-cta, .home-band').forEach((el) => {
+    el.removeAttribute('aria-disabled');
+    el.removeAttribute('tabindex');
+  });
+}
+
 const views = [...document.querySelectorAll('.view')];
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
