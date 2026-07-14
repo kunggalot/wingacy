@@ -1,7 +1,10 @@
 # Wingacy — Shop
 
 Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy** (พอร์ตดีไซน์มาจาก wingacy.com)
-แยกไฟล์แล้ว (2026-07-13): `index.html` (markup) + `css/` ต่อเพจ + `js/` ต่อฟีเจอร์ + `assets/` — ยังไม่มี build step, ไม่มี dependency ภายนอก
+แยกไฟล์แล้ว (2026-07-13): `index.html` (markup) + `css/` ต่อเพจ + `js/` ต่อฟีเจอร์ + `assets/` — ยังไม่มี build step
+
+**Backend (2026-07-14 migration):** ไม่มี server ของตัวเองแล้ว — เดิมมี Express API แยก repo (`wingacy-auth`) รันบน Railway ตอนนี้ retired แล้ว ทุกอย่างคุยกับ **Supabase ตรง** (Auth + Postgres ผ่าน PostgREST + RLS + RPC functions) ผ่าน `supabase-js` — เป็น **external dependency เดียวที่อนุญาต** (vendored เป็นไฟล์ใน `js/vendor/supabase.js` ไม่ใช่ CDN เพื่อกัน CDN ล่มแล้ว auth พังทั้งเว็บ) นอกนั้นยังคง vanilla, ไม่มี build step, ไม่มี dependency อื่น
+Schema/RLS/RPC ทั้งหมดอยู่ที่ repo `wingacy-auth/supabase/migrations/` (ยังใช้เป็น source of truth ของ DB แม้ Express code จะไม่รันแล้ว) — แก้ backend logic (RLS policy, RPC function, ตาราง) ต้องเพิ่ม migration ใหม่ที่นั่น ไม่ใช่แก้ในนี้
 
 ## Workflow (ทำตามลำดับนี้ทุกครั้งที่จะแก้)
 
@@ -15,7 +18,9 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 
 ## โครงสร้างไฟล์ (แก้เพจไหน อ่านเฉพาะไฟล์นั้น)
 
-**`index.html`** (~350 บรรทัด) — markup ล้วน: navbar → views (`#view-home/shop/pro/pri/watch/product/cart/checkout/login/register/account`) → footer → templates (`cardTpl`, `cartLineTpl`, `addressFormTpl`) → `<link>`/`<script src>`
+**`index.html`** (~360 บรรทัด) — markup ล้วน: navbar → views (`#view-home/shop/pro/pri/watch/product/cart/checkout/login/register/account`) → footer → templates (`cardTpl`, `cartLineTpl`, `addressFormTpl`) → `<link>`/`<script src>`
+
+**`admin.html`** — แดชบอร์ดแอดมิน (products/broadcast/orders) แยกไฟล์ต่างหาก ไม่ผ่าน router.js ของ storefront เรียก `supabase-js` ตรงเหมือนกัน แต่ inline `<style>`/`<script>` ในไฟล์เดียว ไม่ได้ตัดเข้า `css/`/`js/` (พอร์ตมาจาก dashboard เดิมที่เคยอยู่ฝั่ง Express) แก้ต้องเทสทั้ง localhost admin login และเช็คด้วยว่า RLS/RPC policy (ฝั่ง `wingacy-auth` migrations) ยังคุมสิทธิ์ตรงกับที่ UI ทำอยู่
 
 **`css/`** — โหลดตามลำดับใน `<head>` **ห้ามสลับลำดับ `<link>`** (cascade เดิมขึ้นกับลำดับนี้):
 | ไฟล์ | ดูแล |
@@ -31,14 +36,15 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 **`js/`** — classic script โหลดตามลำดับท้าย `<body>` **ห้ามสลับลำดับ** (top-level `const/let` แชร์ scope ข้ามไฟล์ ไม่ใช่ ES module ห้ามใส่ `type="module"`):
 | ไฟล์ | ดูแล |
 |---|---|
-| `router.js` | `show()`, data-view binding |
-| `auth.js` | `authFetch`, login/register, account, addresses, place order, orders |
-| `data.js` | `products` array |
+| `vendor/supabase.js` | supabase-js v2 UMD build (vendored, ไม่ใช่ CDN) — โหลดก่อนไฟล์อื่นทุกตัว, ตั้ง `window.supabase` |
+| `router.js` | `show()`, data-view binding, localhost-only auto-enable ปุ่ม pre-launch |
+| `auth.js` | สร้าง `sb` client (anon key), login/register/logout ผ่าน Supabase Auth, `loadCurrentUser`/`is_admin()` RPC, addresses CRUD (RLS), place order ผ่าน `create_order` RPC, order history |
+| `data.js` | `products` array — query ตรงจาก `sb.from('products')` (RLS: public เห็นแค่ active) |
 | `shop.js` | collections, `buildCard`, `renderShop` |
 | `pdp.js` | gallery, `openProduct`, Add to Cart |
 | `cart.js` | mini-cart, `cart` state, `renderCart` |
-| `checkout.js` | `renderCheckout`, `renderCheckoutAddresses` |
-| `tilt.js` | heroTilt + setupTilt |
+| `checkout.js` | `renderCheckout`, `renderCheckoutAddresses` (ใช้ `listAddresses()` จาก auth.js ร่วมกับหน้า account) |
+| `tilt.js` | heroTilt (skip บน touch/`pointer:coarse`) + setupTilt |
 
 **`assets/`** — รูป/ไอคอนทั้งหมด (โลโก้, hero, รูปสินค้า) — **ห้าม Read ไฟล์ในนี้** (binary)
 
@@ -96,12 +102,16 @@ Storefront UI สำหรับแบรนด์ running/streetwear **Wingacy*
 ## Verification (ก่อนบอกว่าเสร็จ)
 
 ไม่มี test suite — verify ด้วยการเปิดจริง (`http://localhost:8000/`):
-1. เปิดในเบราว์เซอร์ — เช็คด้วยตา
-2. ตรวจ: การ์ดครบตาม `products` + index/ราคา/SOLD OUT ถูก, สลับ category tab แล้ว hover tilt ยังทำงาน (rebind), PDP เลือก size → **Add to Cart** → bag นับเพิ่ม, cart แก้ qty/remove ได้, สลับ light/dark โลโก้ invert ถูก
+1. เปิดในเบราว์เซอร์ — เช็คด้วยตา (localhost auto-enable ปุ่ม pre-launch ให้อัตโนมัติ ดู router.js)
+2. ตรวจ: การ์ดครบตาม `products` (query จริงจาก Supabase) + index/ราคา/SOLD OUT ถูก, สลับ category tab แล้ว hover tilt ยังทำงาน (rebind), PDP เลือก size → **Add to Cart** → bag นับเพิ่ม, cart แก้ qty/remove ได้, สลับ light/dark โลโก้ invert ถูก
 3. เช็ค responsive: มือถือ (~390px) hero stack + grid 2 คอลัมน์, desktop PDP split ซ้าย/ขวา
+4. แตะ auth/order flow ต้องเทสจริงด้วย Supabase project จริง (ไม่มี mock): register/login → เพิ่มที่อยู่ → สั่งซื้อ (เช็คว่า re-price/stock validate ทำงานจริงจาก `create_order` RPC ไม่ใช่ client) → order history ขึ้น
+5. แตะ `admin.html` ต้องเทส products CRUD/reorder, broadcast, order status, photo upload — ทุกจุด RLS/RPC ต้องปฏิเสธ non-admin ด้วย (ทดสอบด้วย role ธรรมดาก่อน push ถ้าแก้ policy)
 
 ## ห้ามทำ
 
-- อย่าเพิ่ม framework/bundler/dependency ภายนอก — คง vanilla HTML/CSS/JS ไม่มี build step
+- อย่าเพิ่ม framework/bundler/dependency ภายนอกอื่นอีก — `supabase-js` (vendored) คือ exception เดียวที่อนุญาตแล้ว นอกนั้นคง vanilla HTML/CSS/JS ไม่มี build step
+- อย่าเปลี่ยน `supabase-js` กลับไปโหลดจาก CDN — ต้อง vendor เป็นไฟล์ใน `js/vendor/` เสมอ (กัน CDN ล่มแล้ว auth พังทั้งเว็บ)
+- อย่าใส่ security check (สิทธิ์ admin, re-price สินค้า, validate stock ฯลฯ) ไว้แค่ฝั่ง client — ต้องมี RLS policy หรือ RPC function คุมอยู่ฝั่ง Supabase เสมอ (`wingacy-auth/supabase/migrations/`) เพราะ anon key เป็น public by design ใครก็ยิง query ตรงเข้า DB ได้
 - อย่า hardcode สีที่ซ้ำกับ token
 - อย่า Read ไฟล์ใน `assets/` และอย่าฝัง base64 กลับเข้ามาในโค้ด — รูปใหม่ให้เพิ่มเป็นไฟล์ใน `assets/` เสมอ
