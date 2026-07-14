@@ -33,7 +33,7 @@ async function renderCheckoutAddresses() {
   const placeOrderBtn = document.getElementById('placeOrderBtn');
   let addresses;
   try {
-    addresses = await authFetch('/addresses').then((r) => r.json());
+    addresses = await listAddresses();
   } catch {
     return;
   }

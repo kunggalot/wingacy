@@ -1,32 +1,38 @@
-/* --- auth: talks to the separate wingacy-auth API over cross-origin
-   fetch with cookies. In prod this constant must point at a subdomain of
-   the storefront's own registrable domain (e.g. api.wingacy.com from
-   wingacy.com) — the backend's session cookie is sameSite:'strict', so
-   the browser only attaches it on same-site requests; localhost:8000 and
-   localhost:4000 are same-site today (port doesn't count), but two
-   unrelated domains never are. --- */
-const AUTH_API = 'http://localhost:4000';
-const ADMIN_DASHBOARD_URL = AUTH_API + '/dashboard/';
-let currentUser = null;
+/* --- auth/data client: talks to Supabase directly (Auth JWTs + PostgREST
+   guarded by RLS + plpgsql RPCs) — the standalone wingacy-auth Express
+   server is retired. The anon key below is public by design: every browser
+   gets it, and row access is enforced server-side by RLS policies, not by
+   the key. supabase-js is vendored into js/vendor/ (not CDN-loaded) so a
+   CDN outage can't leave `sb` undefined and take auth down with it. */
+const SUPABASE_URL = 'https://tvcrbfkrthriuxhioyya.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2Y3JiZmtydGhyaXV4aGlveXlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2Nzk0ODIsImV4cCI6MjA5OTI1NTQ4Mn0._YuUSqq20kQ5hWo9FvsXIDghR31BULPLW_1s52DwSCA';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Stage 6 of the Supabase migration moves the admin dashboard into this repo;
+// until then the button stays hidden for everyone but the admin anyway.
+const ADMIN_DASHBOARD_URL = 'admin.html';
+let currentUser = null; // { id, email, isAdmin }
 let selectedAddressId = null;
 
-async function authFetch(path, options = {}) {
-  return fetch(AUTH_API + path, {
-    ...options,
-    credentials: 'include',
-    // The API sets no Cache-Control headers, so the browser's HTTP cache
-    // can serve a stale GET (e.g. /orders right after placing a new one)
-    // instead of hitting the network — force every call to bypass it.
-    cache: 'no-store',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-  });
+// Resolves the signed-in user (or null) from the local session, then asks
+// the server whether they're the admin. isAdmin is decided by the is_admin()
+// Postgres function (role + admin email, both server-side) — the client
+// never derives admin-ness from anything it holds locally.
+async function loadCurrentUser() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { currentUser = null; return null; }
+  let isAdmin = false;
+  try {
+    const { data } = await sb.rpc('is_admin');
+    isAdmin = data === true;
+  } catch { /* treat RPC failure as non-admin — fail closed */ }
+  currentUser = { id: session.user.id, email: session.user.email, isAdmin };
+  return currentUser;
 }
 
 function showAuthError(el, message) { el.textContent = message; el.hidden = false; }
 function hideAuthError(el) { el.hidden = true; }
 // Locks a form's submit button for the duration of an async submit so a
-// second click can't fire a duplicate register/login POST (which the argon2
-// hash makes slow enough to double-tap easily).
+// second click can't fire a duplicate register/login request.
 async function withSubmitLock(form, fn) {
   const btn = form.querySelector('button[type="submit"]');
   if (btn) btn.disabled = true;
@@ -36,9 +42,6 @@ async function withSubmitLock(form, fn) {
 function renderAccount() {
   document.getElementById('accountNote').hidden = true;
   document.getElementById('accountEmail').textContent = currentUser ? currentUser.email : '';
-  // isAdmin is computed server-side (role + ADMIN_EMAIL) and returned by /me —
-  // the client never decides admin-ness itself, so this button can't disagree
-  // with what the backend actually lets through.
   document.getElementById('adminNavBtn').hidden = !currentUser || !currentUser.isAdmin;
   if (currentUser) {
     renderAccountAddresses();
@@ -49,6 +52,17 @@ function renderAccount() {
 // --- addresses: shared between the Account page and Checkout (checkout
 // reuses buildAddressCard/bindAddressForm for its own "add new address"
 // flow, see the checkout wiring below). ---
+// Default-first so both lists lead with the address most likely to be used.
+async function listAddresses() {
+  const { data, error } = await sb
+    .from('addresses')
+    .select('*')
+    .order('is_default', { ascending: false })
+    .order('created_at');
+  if (error) throw error;
+  return data;
+}
+
 function addressSummaryLine(a) {
   const parts = [a.line1];
   if (a.line2) parts.push(a.line2);
@@ -76,7 +90,9 @@ function buildAddressCard(a) {
 }
 
 // Clones #addressFormTpl into `container`, wires the Thailand/International
-// toggle and submit/cancel, and POSTs (new) or PATCHes (`existing` given).
+// toggle and submit/cancel, and inserts (new) or updates (`existing` given)
+// the row directly — RLS scopes both to the signed-in user, and the
+// addresses_single_default trigger keeps at most one default per user.
 // `onSaved(address)` runs after a successful save so callers (Account list,
 // Checkout) can each decide how to refresh themselves.
 function bindAddressForm(container, existing, { onSaved, onCancel }) {
@@ -120,39 +136,45 @@ function bindAddressForm(container, existing, { onSaved, onCancel }) {
     e.preventDefault();
     hideAuthError(errorEl);
     const isThai = thBtn.getAttribute('aria-pressed') === 'true';
-    const body = {
-      label: form.querySelector('.f-label').value || undefined,
-      recipientName: form.querySelector('.f-recipientName').value,
+    // snake_case column names — rows go straight into Postgres now, the old
+    // camelCase API-body mapping layer is gone with the Express server
+    const row = {
+      label: form.querySelector('.f-label').value || null,
+      recipient_name: form.querySelector('.f-recipientName').value,
       phone: form.querySelector('.f-phone').value,
-      countryCode: isThai ? 'TH' : 'XX',
+      country_code: isThai ? 'TH' : 'XX',
       line1: form.querySelector('.f-line1').value,
-      line2: form.querySelector('.f-line2').value || undefined,
-      postalCode: form.querySelector('.f-postalCode').value,
-      isDefault: form.querySelector('.f-isDefault').checked,
+      line2: form.querySelector('.f-line2').value || null,
+      postal_code: form.querySelector('.f-postalCode').value,
+      is_default: form.querySelector('.f-isDefault').checked,
     };
     if (isThai) {
-      body.subdistrict = form.querySelector('.f-subdistrict').value;
-      body.district = form.querySelector('.f-district').value;
-      body.province = form.querySelector('.f-province').value;
+      row.subdistrict = form.querySelector('.f-subdistrict').value;
+      row.district = form.querySelector('.f-district').value;
+      row.province = form.querySelector('.f-province').value;
+      row.city = null; row.state_region = null; row.country_name = null;
     } else {
-      body.city = form.querySelector('.f-city').value;
-      body.stateRegion = form.querySelector('.f-stateRegion').value || undefined;
-      body.countryName = form.querySelector('.f-countryName').value;
+      row.city = form.querySelector('.f-city').value;
+      row.state_region = form.querySelector('.f-stateRegion').value || null;
+      row.country_name = form.querySelector('.f-countryName').value;
+      row.subdistrict = null; row.district = null; row.province = null;
     }
     await withSubmitLock(form, async () => {
-      try {
-        const path = existing ? `/addresses/${existing.id}` : '/addresses';
-        const method = existing ? 'PATCH' : 'POST';
-        const res = await authFetch(path, { method, body: JSON.stringify(body) });
-        if (!res.ok) {
-          const resBody = await res.json().catch(() => ({}));
-          showAuthError(errorEl, resBody.error || 'Could not save address.');
-          return;
-        }
-        onSaved(await res.json());
-      } catch {
-        showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+      let saved, error;
+      if (existing) {
+        ({ data: saved, error } = await sb.from('addresses')
+          .update(row).eq('id', existing.id).select().single());
+      } else {
+        // RLS insert policy requires user_id = auth.uid(), so set it explicitly
+        row.user_id = currentUser.id;
+        ({ data: saved, error } = await sb.from('addresses')
+          .insert(row).select().single());
       }
+      if (error) {
+        showAuthError(errorEl, 'Could not save address.');
+        return;
+      }
+      onSaved(saved);
     });
   });
 
@@ -165,7 +187,7 @@ async function renderAccountAddresses() {
   const formContainer = document.getElementById('accountAddressFormContainer');
   let addresses;
   try {
-    addresses = await authFetch('/addresses').then((r) => r.json());
+    addresses = await listAddresses();
   } catch {
     return;
   }
@@ -186,7 +208,7 @@ async function renderAccountAddresses() {
       });
     });
     deleteBtn.addEventListener('click', async () => {
-      await authFetch(`/addresses/${a.id}`, { method: 'DELETE' });
+      await sb.from('addresses').delete().eq('id', a.id);
       renderAccountAddresses();
     });
     card.appendChild(actions);
@@ -220,49 +242,44 @@ document.getElementById('placeOrderBtn').addEventListener('click', async () => {
   hideAuthError(errorEl);
   if (!selectedAddressId || cart.length === 0) return;
   btn.disabled = true;
-  try {
-    const res = await authFetch('/orders', {
-      method: 'POST',
-      body: JSON.stringify({
-        addressId: selectedAddressId,
-        items: cart.map((l) => ({ productId: l.id, size: l.size, quantity: l.qty })),
-      }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      // Left deliberately untouched on failure (e.g. a size sold out
-      // between add-to-cart and checkout) so the user can adjust and retry
-      // without re-adding everything.
-      showAuthError(errorEl, body.error || 'Could not place order.');
-      btn.disabled = false;
-      return;
-    }
-    const order = await res.json();
-    cart = [];
-    updateBagCount();
-    show('account');
-    const accountNote = document.getElementById('accountNote');
-    accountNote.textContent = `Order #${order.order_number} placed.`;
-    accountNote.hidden = false;
-  } catch {
-    showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+  // create_order re-prices every line server-side and validates stock — the
+  // payload deliberately carries no prices, same contract as the old API
+  const { data: order, error } = await sb.rpc('create_order', {
+    p_address_id: selectedAddressId,
+    p_items: cart.map((l) => ({ productId: l.id, size: l.size, quantity: l.qty })),
+  });
+  if (error) {
+    // Cart left deliberately untouched on failure (e.g. a size sold out
+    // between add-to-cart and checkout) so the user can adjust and retry
+    // without re-adding everything. error.message carries the RPC's own
+    // human-readable reason ("Size not in stock: …").
+    showAuthError(errorEl, error.message || 'Could not place order.');
     btn.disabled = false;
+    return;
   }
+  cart = [];
+  updateBagCount();
+  show('account');
+  const accountNote = document.getElementById('accountNote');
+  accountNote.textContent = `Order #${order.order_number} placed.`;
+  accountNote.hidden = false;
 });
 
 // --- order history ---
 async function renderOrderHistory() {
   const list = document.getElementById('orderList');
   const emptyEl = document.getElementById('orderListEmpty');
-  let orders;
-  try {
-    orders = await authFetch('/orders').then((r) => r.json());
-  } catch {
-    return;
-  }
+  // order_items(count) piggybacks the item count on the same query — the
+  // old API did this with a subquery; RLS scopes rows to the signed-in user
+  const { data: orders, error } = await sb
+    .from('orders')
+    .select('id, order_number, status, subtotal, currency, created_at, order_items(count)')
+    .order('created_at', { ascending: false });
+  if (error) return;
   list.innerHTML = '';
   emptyEl.hidden = orders.length > 0;
   orders.forEach((o) => {
+    const itemCount = o.order_items[0] ? o.order_items[0].count : 0;
     const row = document.createElement('div');
     row.className = 'order-row';
     row.innerHTML = `
@@ -270,7 +287,7 @@ async function renderOrderHistory() {
         <span>Order #${o.order_number}</span>
         <span>${fmt(o.subtotal)}</span>
       </div>
-      <div class="order-row-meta">${new Date(o.created_at).toLocaleDateString()} · ${o.status} · ${o.item_count} item${o.item_count === 1 ? '' : 's'}</div>
+      <div class="order-row-meta">${new Date(o.created_at).toLocaleDateString()} · ${o.status} · ${itemCount} item${itemCount === 1 ? '' : 's'}</div>
       <div class="order-row-detail" hidden></div>
     `;
     const top = row.querySelector('.order-row-top');
@@ -279,9 +296,15 @@ async function renderOrderHistory() {
     top.addEventListener('click', async () => {
       detail.hidden = !detail.hidden;
       if (detail.hidden || loaded) return;
-      const full = await authFetch(`/orders/${o.id}`).then((r) => r.json());
+      const { data: full, error: detailError } = await sb
+        .from('orders')
+        .select('shipping_address, order_items(product_name, size, quantity, line_total, created_at)')
+        .eq('id', o.id)
+        .order('created_at', { referencedTable: 'order_items' })
+        .single();
+      if (detailError) return;
       loaded = true;
-      const itemsHtml = full.items
+      const itemsHtml = full.order_items
         .map((it) => `<div class="cart-line-size">${it.product_name} — Size ${it.size} &times; ${it.quantity} — ${fmt(it.line_total)}</div>`)
         .join('');
       detail.innerHTML = `${itemsHtml}<p class="address-card-body">${addressSummaryLine(full.shipping_address)}</p>`;
@@ -295,10 +318,6 @@ document.getElementById('accountBtn').addEventListener('click', (e) => {
   show(currentUser ? 'account' : 'login');
 });
 
-// Admin dashboard lives on the backend (wingacy-auth), not this storefront —
-// navigate in the same tab (not a new window) so it feels like one site,
-// just a different path. Same-site as the login POST, so the session cookie
-// rides along on this top-level navigation, no re-login needed.
 document.getElementById('adminNavBtn').addEventListener('click', () => {
   window.location.href = ADMIN_DASHBOARD_URL;
 });
@@ -322,19 +341,16 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   await withSubmitLock(e.target, async () => {
-    try {
-      const res = await authFetch('/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        showAuthError(errorEl, body.error || 'Log in failed.');
-        return;
-      }
-      currentUser = await res.json();
-      renderAccount();
-      show('account');
-    } catch {
-      showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      // Supabase's own copy ("Invalid login credentials", "Email not
+      // confirmed") is already generic + anti-enumeration safe
+      showAuthError(errorEl, error.message || 'Log in failed.');
+      return;
     }
+    await loadCurrentUser();
+    renderAccount();
+    show('account');
   });
 });
 
@@ -345,32 +361,27 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   const email = document.getElementById('registerEmail').value;
   const password = document.getElementById('registerPassword').value;
   await withSubmitLock(e.target, async () => {
-    try {
-      const res = await authFetch('/register', { method: 'POST', body: JSON.stringify({ email, password }) });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        showAuthError(errorEl, body.error || 'Registration failed.');
-        return;
-      }
-      // Register no longer auto-logs-in and the server replies identically
-      // whether the email was new or already taken (anti-enumeration), so we
-      // always send the user to log in with the same neutral confirmation —
-      // the UI must not branch on account existence either.
-      e.target.reset();
-      document.getElementById('loginEmail').value = email;
-      show('login');
-      const note = document.getElementById('loginNote');
-      note.textContent = 'You can now log in.';
-      note.hidden = false;
-    } catch {
-      showAuthError(errorEl, 'Could not reach the server. Check your connection and try again.');
+    const { error } = await sb.auth.signUp({ email, password });
+    if (error) {
+      showAuthError(errorEl, error.message || 'Registration failed.');
+      return;
     }
+    // Email confirmation is on, and signUp answers identically whether the
+    // email was new or already registered (anti-enumeration) — so always
+    // show the same neutral next step; the UI must not branch on account
+    // existence either.
+    e.target.reset();
+    document.getElementById('loginEmail').value = email;
+    show('login');
+    const note = document.getElementById('loginNote');
+    note.textContent = 'Check your email to confirm your account, then log in.';
+    note.hidden = false;
   });
 });
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   try {
-    await authFetch('/logout', { method: 'POST' }); // 204 No Content — no body to parse
+    await sb.auth.signOut();
   } catch {
     /* logout is best-effort client-side regardless of network state */
   }
@@ -379,15 +390,12 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   show('login');
 });
 
-// Silently restore session on load (e.g. returning visitor with a live cookie).
+// Silently restore session on load (supabase-js persists it in localStorage
+// and auto-refreshes the token, so a returning visitor stays signed in).
 (async () => {
   try {
-    const res = await authFetch('/me');
-    if (res.ok) {
-      currentUser = await res.json();
-      renderAccount();
-    }
+    if (await loadCurrentUser()) renderAccount();
   } catch {
-    /* no session / API unreachable — stay logged out, no user-facing error */
+    /* no session / Supabase unreachable — stay logged out, no user-facing error */
   }
 })();
