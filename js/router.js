@@ -43,7 +43,14 @@ function show(name){
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('[data-view]').forEach((t) => {
-  t.addEventListener('click', (e) => { e.preventDefault(); show(t.dataset.view); });
+  t.addEventListener('click', (e) => {
+    e.preventDefault();
+    // Native `disabled` already blocks <button> clicks, but <a> has no such
+    // attribute — aria-disabled="true" only affects styling/a11y, so it needs
+    // this explicit guard to actually stop navigation.
+    if (t.disabled || t.getAttribute('aria-disabled') === 'true') return;
+    show(t.dataset.view);
+  });
 });
 
 // Lets an external link (e.g. a notification's #view-shop) land on the right

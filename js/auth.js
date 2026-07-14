@@ -36,7 +36,10 @@ async function withSubmitLock(form, fn) {
 function renderAccount() {
   document.getElementById('accountNote').hidden = true;
   document.getElementById('accountEmail').textContent = currentUser ? currentUser.email : '';
-  document.getElementById('adminNavBtn').hidden = !currentUser || currentUser.role !== 'admin';
+  // isAdmin is computed server-side (role + ADMIN_EMAIL) and returned by /me —
+  // the client never decides admin-ness itself, so this button can't disagree
+  // with what the backend actually lets through.
+  document.getElementById('adminNavBtn').hidden = !currentUser || !currentUser.isAdmin;
   if (currentUser) {
     renderAccountAddresses();
     renderOrderHistory();
@@ -293,10 +296,11 @@ document.getElementById('accountBtn').addEventListener('click', (e) => {
 });
 
 // Admin dashboard lives on the backend (wingacy-auth), not this storefront —
-// opens in a new tab so browsing state here isn't lost. Same-origin as the
-// login POST, so the session cookie already covers it, no re-login needed.
+// navigate in the same tab (not a new window) so it feels like one site,
+// just a different path. Same-site as the login POST, so the session cookie
+// rides along on this top-level navigation, no re-login needed.
 document.getElementById('adminNavBtn').addEventListener('click', () => {
-  window.open(ADMIN_DASHBOARD_URL, '_blank', 'noopener');
+  window.location.href = ADMIN_DASHBOARD_URL;
 });
 
 document.getElementById('checkoutBtn').addEventListener('click', () => {

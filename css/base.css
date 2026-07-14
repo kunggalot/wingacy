@@ -111,6 +111,13 @@ body{
   text-transform: uppercase;
   isolation: isolate;
 }
+/* .hoverable's own `display` is an author rule, so it always beats the
+   browser's built-in `[hidden]{display:none}` (author beats UA regardless of
+   specificity) — without this, any .hoverable carrying the `hidden` attribute
+   (e.g. #adminNavBtn, gated on role in auth.js) renders anyway. Same guard
+   pattern already used elsewhere in this codebase (see account.css,
+   overrides.css, pdp.css). */
+.hoverable[hidden]{ display: none; }
 .hoverable::before{
   content: "";
   position: absolute;
@@ -163,6 +170,9 @@ body{
   letter-spacing: 0.02em;
   font-size: 0.95rem;
 }
+/* .brand isn't .hoverable (no wipe effect on the logo), so it needs its own
+   disabled state instead of picking up .hoverable:disabled */
+.brand:disabled{ cursor: not-allowed; opacity: 0.5; }
 .navbar-links,
 .navbar-right{
   display: flex;
